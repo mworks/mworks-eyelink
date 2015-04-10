@@ -271,7 +271,7 @@ bool Eyelink::update() {
 					
 					denom = d2121 * d4343 - d4321 * d4321;
 					
-					if (abs(denom) > 1e-6) { // should always be true when e_dist is really tracking range
+					if (std::abs(denom) > 1e-6) { // should always be true when e_dist is really tracking range
 						
 						numer = p43x * d4321 - p21x * d4343;
                         
