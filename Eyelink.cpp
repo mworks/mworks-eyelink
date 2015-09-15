@@ -90,10 +90,10 @@ void Eyelink::describeComponent(ComponentInfo &info) {
 
 Eyelink::Eyelink(const ParameterValueMap &parameters) :
 IODevice(parameters),
+clock(Clock::instance()),
 e_dist(parameters[E_DIST]),
 update_period(parameters[UPDATE_PERIOD]),
 tracker_ip(parameters[IP].str()),
-clock(Clock::instance()),
 errors(0),
 ack_msg_counter(0)  {
     if (!(parameters[RX].empty())) { e_rx = VariablePtr(parameters[RX]); }
