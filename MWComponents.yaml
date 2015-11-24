@@ -1,0 +1,66 @@
+---
+
+
+name: Eyelink 1k, Socket Link
+signature: iodevice/eyelink
+isa: IODevice
+icon: smallIOFolder
+description: >
+    Eyelink 1000 Plugin.  INSTRUCTIONS BELOW REQUIRED PARAMETERS:
+    tracking_dist = Range of possible (eyetracker) units (1024 should be
+    the default value) data_interval should not be too short, but faster
+    than tracker's sampling rate tracker_ip contains the trackers IP
+    address, check for working connection using SR-Research's
+    'simpleexample' OUTPUT: eye_x/_y/_z is the midpoint of the shortest
+    connecting line that is orthogonal to both gaze vectors assuming the
+    tracker runs in binocular mode.  Otherwise these values will be empty.
+    all other output parameters are specified and described in the Eyelink
+    1000 manual.
+parameters: 
+  - 
+    name: data_interval
+    default: 1ms
+  - 
+    name: tracker_ip
+    default: 10.1.1.2
+  - 
+    name: eye_rx
+  - 
+    name: eye_ry
+  - 
+    name: eye_lx
+  - 
+    name: eye_ly
+  - 
+    name: eye_x
+  - 
+    name: eye_y
+  - 
+    name: eye_z
+  - 
+    name: href_rx
+  - 
+    name: href_ry
+  - 
+    name: href_lx
+  - 
+    name: href_ly
+  - 
+    name: pupil_rx
+  - 
+    name: pupil_ry
+  - 
+    name: pupil_lx
+  - 
+    name: pupil_ly
+  - 
+    name: pupil_size_r
+  - 
+    name: pupil_size_l
+  - 
+    name: eye_time
+  - 
+    name: tracking_dist
+    default: 1024
+
+
