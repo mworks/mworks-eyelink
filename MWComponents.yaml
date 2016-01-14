@@ -1,28 +1,43 @@
 ---
 
 
-name: Eyelink 1k, Socket Link
+name: EyeLink Device
 signature: iodevice/eyelink
 isa: IODevice
 icon: smallIOFolder
-description: >
-    Eyelink 1000 Plugin.  INSTRUCTIONS BELOW REQUIRED PARAMETERS:
-    tracking_dist = Range of possible (eyetracker) units (1024 should be
-    the default value) data_interval should not be too short, but faster
-    than tracker's sampling rate tracker_ip contains the trackers IP
-    address, check for working connection using SR-Research's
-    'simpleexample' OUTPUT: eye_x/_y/_z is the midpoint of the shortest
-    connecting line that is orthogonal to both gaze vectors assuming the
-    tracker runs in binocular mode.  Otherwise these values will be empty.
-    all other output parameters are specified and described in the Eyelink
-    1000 manual.
+description: |
+    Digital interface to an `EyeLink <http://www.sr-research.com>`_
+    eye tracker.  Tested with the
+    `EyeLink 1000 <http://www.sr-research.com/eyelink1000.html>`_ and
+    `EyeLink II <http://www.sr-research.com/eyelinkII.html>`_ trackers,
+    but may be compatible with additional devices.
+
+    If the tracker is run in binocular mode, `eye_x`_, `eye_y`_, and `eye_z`_
+    give the midpoint of the shortest connecting line that is orthogonal to both
+    gaze vectors; otherwise, these values will be empty.  All other output
+    parameters are specified and described in the `EyeLink 1000 User Manual
+    <file:///Applications/Eyelink/docs/EyeLink1000_UserManual.pdf>`_.
+
 parameters: 
   - 
-    name: data_interval
-    default: 1ms
-  - 
     name: tracker_ip
-    default: 10.1.1.2
+    required: yes
+    example: 10.1.1.2
+    description: The tracker's IP address
+  - 
+    name: tracking_dist
+    required: yes
+    example: 1024
+    description: >
+        Tracking range in eye tracker units.  (The default value should be
+        1024.)
+  - 
+    name: data_interval
+    required: yes
+    example: 1ms
+    description: >
+        Data polling interval.  Should not be too short, but faster than
+        tracker's sampling rate.
   - 
     name: eye_rx
   - 
@@ -59,8 +74,5 @@ parameters:
     name: pupil_size_l
   - 
     name: eye_time
-  - 
-    name: tracking_dist
-    default: 1024
 
 
