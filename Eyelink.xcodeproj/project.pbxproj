@@ -309,7 +309,10 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Eyelink_Prefix.pch;
 				INFOPLIST_FILE = "Eyelink-Info.plist";
-				OTHER_LDFLAGS = "-headerpad_max_install_names";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-headerpad_max_install_names",
+				);
 				PRODUCT_NAME = Eyelink;
 				WRAPPER_EXTENSION = bundle;
 			};
