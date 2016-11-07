@@ -4,7 +4,6 @@
 name: EyeLink Device
 signature: iodevice/eyelink
 isa: IODevice
-icon: smallIOFolder
 description: |
     Digital interface to an `EyeLink <http://www.sr-research.com>`_
     eye tracker.  Tested with the
@@ -40,39 +39,57 @@ parameters:
         tracker's sampling rate.
   - 
     name: eye_rx
+    description: Variable in which to store right eye screen gaze x
   - 
     name: eye_ry
+    description: Variable in which to store right eye screen gaze y
   - 
     name: eye_lx
+    description: Variable in which to store left eye screen gaze x
   - 
     name: eye_ly
+    description: Variable in which to store left eye screen gaze y
   - 
     name: eye_x
+    description: Variable in which to store computed ``eye_x`` (described above)
   - 
     name: eye_y
+    description: Variable in which to store computed ``eye_y`` (described above)
   - 
     name: eye_z
+    description: Variable in which to store computed ``eye_z`` (described above)
   - 
     name: href_rx
+    description: Variable in which to store right eye headref x
   - 
     name: href_ry
+    description: Variable in which to store right eye headref y
   - 
     name: href_lx
+    description: Variable in which to store left eye headref x
   - 
     name: href_ly
+    description: Variable in which to store left eye headref y
   - 
     name: pupil_rx
+    description: Variable in which to store right eye pupil x
   - 
     name: pupil_ry
+    description: Variable in which to store right eye pupil y
   - 
     name: pupil_lx
+    description: Variable in which to store left eye pupil x
   - 
     name: pupil_ly
+    description: Variable in which to store left eye pupil y
   - 
     name: pupil_size_r
+    description: Variable in which to store right pupil size or area
   - 
     name: pupil_size_l
+    description: Variable in which to store left pupil size or area
   - 
     name: eye_time
+    description: Variable in which to store time of sample (on EyeLink clock)
 
 
