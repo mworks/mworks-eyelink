@@ -4,6 +4,7 @@
 name: EyeLink Device
 signature: iodevice/eyelink
 isa: IODevice
+platform: macos
 description: |
     Digital interface to an `EyeLink <http://www.sr-research.com>`_
     eye tracker.  Tested with the
