@@ -244,9 +244,11 @@ bool Eyelink::update() {
                 
                 inputtime = this->clock->getCurrentTimeUS();
                 
+                /*
                 // occasionally, send the current time together with the sample time back to the tracker (and log it there)
                 if ( ack_msg_counter++ % 512 == 0 )
                     eyemsg_printf((char*)"SAMPLE %ld received %lld",(long)evt.time,inputtime);
+                 */
 				
                 // now update all the variables
 				if (e_time != NULL) e_time -> setValue( (long)evt.time ,inputtime);
