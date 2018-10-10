@@ -9,17 +9,20 @@
 
 #include "Eyelink.h"
 
-using namespace mw;
+
+BEGIN_NAMESPACE_MW
 
 
 class EyelinkPlugin : public Plugin {
-	virtual void registerComponents(shared_ptr<ComponentRegistry> registry) {
+    void registerComponents(boost::shared_ptr<ComponentRegistry> registry) override {
         registry->registerFactory<StandardComponentFactory, Eyelink>();
     }
 };
 
 
-MW_SYMBOL_PUBLIC
 extern "C" Plugin* getPlugin() {
     return new EyelinkPlugin();
 }
+
+
+END_NAMESPACE_MW

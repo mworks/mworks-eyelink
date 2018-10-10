@@ -2,8 +2,17 @@
 // Prefix header for all source files of the 'Eyelink' target in the 'Eyelink' project.
 //
 
+#ifndef Eyelink_Prefix_pch
+#define Eyelink_Prefix_pch
+
+#include <eyelink_core/core_expt.h>
+
 #ifdef __cplusplus
-    #include <MWorksCore/IODevice.h>
-    #include <MWorksCore/Plugin.h>
-    #include <MWorksCore/StandardComponentFactory.h>
-#endif
+
+#include <MWorksCore/IODevice.h>
+#include <MWorksCore/Plugin.h>
+#include <MWorksCore/StandardComponentFactory.h>
+
+#endif /* defined(__cplusplus) */
+
+#endif /* Eyelink_Prefix_pch */
