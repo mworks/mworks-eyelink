@@ -17,6 +17,7 @@ BEGIN_NAMESPACE_MW
 class Eyelink : public IODevice, boost::noncopyable {
     
 public:
+    static const std::string IP;
     static const std::string RX;
     static const std::string RY;
     static const std::string LX;
@@ -37,7 +38,6 @@ public:
     static const std::string E_DIST;
     static const std::string EYE_TIME;
     static const std::string UPDATE_PERIOD;
-    static const std::string IP;
     
     static void describeComponent(ComponentInfo &info);
     
@@ -58,6 +58,7 @@ private:
     boost::shared_ptr<ScheduleTask> schedule_node;
     boost::shared_ptr<Clock> clock;
     
+    const std::string tracker_ip;
     boost::shared_ptr<Variable> e_rx;
     boost::shared_ptr<Variable> e_ry;
     boost::shared_ptr<Variable> e_lx;
@@ -75,11 +76,10 @@ private:
     boost::shared_ptr<Variable> p_ly;
     boost::shared_ptr<Variable> p_r;
     boost::shared_ptr<Variable> p_l;
-    const double e_dist;
+    double e_dist;
     boost::shared_ptr<Variable> e_time;
     
     const MWorksTime update_period;
-    string tracker_ip;
     
     char version_info[256];
     int tracker_version;

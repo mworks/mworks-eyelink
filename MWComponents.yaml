@@ -22,11 +22,10 @@ parameters:
   - 
     name: tracker_ip
     required: yes
-    example: 10.1.1.2
+    example: 100.1.1.1
     description: The tracker's IP address
   - 
     name: tracking_dist
-    required: yes
     example: 1024
     description: >
         Tracking range in eye tracker units.  (The default value should be

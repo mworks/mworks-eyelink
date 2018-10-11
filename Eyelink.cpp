@@ -19,6 +19,7 @@ Eyelink::unique_lock::mutex_type& Eyelink::eyelinkDriverLock = *(new unique_lock
 bool Eyelink::eyelinkInitialized = false;
 
 
+const std::string Eyelink::IP("tracker_ip");
 const std::string Eyelink::RX("eye_rx");
 const std::string Eyelink::RY("eye_ry");
 const std::string Eyelink::LX("eye_lx");
@@ -39,7 +40,6 @@ const std::string Eyelink::P_L("pupil_size_l");
 const std::string Eyelink::E_DIST("tracking_dist");
 const std::string Eyelink::EYE_TIME("eye_time");
 const std::string Eyelink::UPDATE_PERIOD("data_interval");
-const std::string Eyelink::IP("tracker_ip");
 
 
 void Eyelink::describeComponent(ComponentInfo &info) {
@@ -47,6 +47,7 @@ void Eyelink::describeComponent(ComponentInfo &info) {
     
     info.setSignature("iodevice/eyelink");
     
+    info.addParameter(IP);
     info.addParameter(RX, false);
     info.addParameter(RY, false);
     info.addParameter(LX, false);
@@ -64,19 +65,17 @@ void Eyelink::describeComponent(ComponentInfo &info) {
     info.addParameter(P_LY, false);
     info.addParameter(P_R, false);
     info.addParameter(P_L, false);
-    info.addParameter(E_DIST, true, "1024");
+    info.addParameter(E_DIST, false);
     info.addParameter(EYE_TIME, false);
     info.addParameter(UPDATE_PERIOD, true, "1ms");
-    info.addParameter(IP, true, "10.1.1.2");
 }
 
 
 Eyelink::Eyelink(const ParameterValueMap &parameters) :
     IODevice(parameters),
     clock(Clock::instance()),
-    e_dist(parameters[E_DIST]),
-    update_period(parameters[UPDATE_PERIOD]),
     tracker_ip(parameters[IP].str()),
+    update_period(parameters[UPDATE_PERIOD]),
     errors(0)
 {
     if (!(parameters[RX].empty())) { e_rx = VariablePtr(parameters[RX]); }
@@ -96,6 +95,12 @@ Eyelink::Eyelink(const ParameterValueMap &parameters) :
     if (!(parameters[P_LY].empty())) { p_ly = VariablePtr(parameters[P_LY]); }
     if (!(parameters[P_R].empty())) { p_r = VariablePtr(parameters[P_R]); }
     if (!(parameters[P_L].empty())) { p_l = VariablePtr(parameters[P_L]); }
+    if (!(parameters[E_DIST].empty())) {
+        e_dist = double(parameters[E_DIST]);
+    } else if (e_x || e_y || e_z) {
+        throw SimpleException(M_IODEVICE_MESSAGE_DOMAIN, (boost::format("%s is required to compute %s, %s, and %s")
+                                                          % E_DIST % EX % EY % EZ));
+    }
     if (!(parameters[EYE_TIME].empty())) { e_time = VariablePtr(parameters[EYE_TIME]); }
 }
 
@@ -111,7 +116,7 @@ bool Eyelink::initialize() {
     
     // Initializes the link
     //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Trying to find Eyelink System at %s",tracker_ip);
-    if (set_eyelink_address(&tracker_ip[0])) {
+    if (set_eyelink_address(const_cast<char *>(tracker_ip.c_str()))) {
         merror(M_IODEVICE_MESSAGE_DOMAIN,"Failed to set Tracker to address %s", tracker_ip.c_str());
     }
     
