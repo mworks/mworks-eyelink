@@ -55,31 +55,30 @@ private:
     static unique_lock::mutex_type& eyelinkDriverLock;
     static bool eyelinkInitialized;
     
-    boost::shared_ptr<ScheduleTask> schedule_node;
-    boost::shared_ptr<Clock> clock;
-    
     const std::string tracker_ip;
-    boost::shared_ptr<Variable> e_rx;
-    boost::shared_ptr<Variable> e_ry;
-    boost::shared_ptr<Variable> e_lx;
-    boost::shared_ptr<Variable> e_ly;
-    boost::shared_ptr<Variable> e_x;
-    boost::shared_ptr<Variable> e_y;
-    boost::shared_ptr<Variable> e_z;
-    boost::shared_ptr<Variable> h_rx;
-    boost::shared_ptr<Variable> h_ry;
-    boost::shared_ptr<Variable> h_lx;
-    boost::shared_ptr<Variable> h_ly;
-    boost::shared_ptr<Variable> p_rx;
-    boost::shared_ptr<Variable> p_ry;
-    boost::shared_ptr<Variable> p_lx;
-    boost::shared_ptr<Variable> p_ly;
-    boost::shared_ptr<Variable> p_r;
-    boost::shared_ptr<Variable> p_l;
-    double e_dist;
-    boost::shared_ptr<Variable> e_time;
-    
+    const boost::shared_ptr<Variable> e_rx;
+    const boost::shared_ptr<Variable> e_ry;
+    const boost::shared_ptr<Variable> e_lx;
+    const boost::shared_ptr<Variable> e_ly;
+    const boost::shared_ptr<Variable> e_x;
+    const boost::shared_ptr<Variable> e_y;
+    const boost::shared_ptr<Variable> e_z;
+    const boost::shared_ptr<Variable> h_rx;
+    const boost::shared_ptr<Variable> h_ry;
+    const boost::shared_ptr<Variable> h_lx;
+    const boost::shared_ptr<Variable> h_ly;
+    const boost::shared_ptr<Variable> p_rx;
+    const boost::shared_ptr<Variable> p_ry;
+    const boost::shared_ptr<Variable> p_lx;
+    const boost::shared_ptr<Variable> p_ly;
+    const boost::shared_ptr<Variable> p_r;
+    const boost::shared_ptr<Variable> p_l;
+    const double e_dist;
+    const boost::shared_ptr<Variable> e_time;
     const MWorksTime update_period;
+    
+    const boost::shared_ptr<Clock> clock;
+    boost::shared_ptr<ScheduleTask> schedule_node;
     
     char version_info[256];
     int tracker_version;

@@ -71,37 +71,44 @@ void Eyelink::describeComponent(ComponentInfo &info) {
 }
 
 
+static inline VariablePtr optionalVariable(const ParameterValue &param) {
+    if (param.empty()) {
+        return VariablePtr();
+    }
+    return VariablePtr(param);
+}
+
+
 Eyelink::Eyelink(const ParameterValueMap &parameters) :
     IODevice(parameters),
-    clock(Clock::instance()),
     tracker_ip(parameters[IP].str()),
+    e_rx(optionalVariable(parameters[RX])),
+    e_ry(optionalVariable(parameters[RY])),
+    e_lx(optionalVariable(parameters[LX])),
+    e_ly(optionalVariable(parameters[LY])),
+    e_x(optionalVariable(parameters[EX])),
+    e_y(optionalVariable(parameters[EY])),
+    e_z(optionalVariable(parameters[EZ])),
+    h_rx(optionalVariable(parameters[H_RX])),
+    h_ry(optionalVariable(parameters[H_RY])),
+    h_lx(optionalVariable(parameters[H_LX])),
+    h_ly(optionalVariable(parameters[H_LY])),
+    p_rx(optionalVariable(parameters[P_RX])),
+    p_ry(optionalVariable(parameters[P_RY])),
+    p_lx(optionalVariable(parameters[P_LX])),
+    p_ly(optionalVariable(parameters[P_LY])),
+    p_r(optionalVariable(parameters[P_R])),
+    p_l(optionalVariable(parameters[P_L])),
+    e_dist(parameters[E_DIST].empty() ? 0.0 : double(parameters[E_DIST])),
+    e_time(optionalVariable(parameters[EYE_TIME])),
     update_period(parameters[UPDATE_PERIOD]),
+    clock(Clock::instance()),
     errors(0)
 {
-    if (!(parameters[RX].empty())) { e_rx = VariablePtr(parameters[RX]); }
-    if (!(parameters[RY].empty())) { e_ry = VariablePtr(parameters[RY]); }
-    if (!(parameters[LX].empty())) { e_lx = VariablePtr(parameters[LX]); }
-    if (!(parameters[LY].empty())) { e_ly = VariablePtr(parameters[LY]); }
-    if (!(parameters[EX].empty())) { e_x = VariablePtr(parameters[EX]); }
-    if (!(parameters[EY].empty())) { e_y = VariablePtr(parameters[EY]); }
-    if (!(parameters[EZ].empty())) { e_z = VariablePtr(parameters[EZ]); }
-    if (!(parameters[H_RX].empty())) { h_rx = VariablePtr(parameters[H_RX]); }
-    if (!(parameters[H_RY].empty())) { h_ry = VariablePtr(parameters[H_RY]); }
-    if (!(parameters[H_LX].empty())) { h_lx = VariablePtr(parameters[H_LX]); }
-    if (!(parameters[H_LY].empty())) { h_ly = VariablePtr(parameters[H_LY]); }
-    if (!(parameters[P_RX].empty())) { p_rx = VariablePtr(parameters[P_RX]); }
-    if (!(parameters[P_RY].empty())) { p_ry = VariablePtr(parameters[P_RY]); }
-    if (!(parameters[P_LX].empty())) { p_lx = VariablePtr(parameters[P_LX]); }
-    if (!(parameters[P_LY].empty())) { p_ly = VariablePtr(parameters[P_LY]); }
-    if (!(parameters[P_R].empty())) { p_r = VariablePtr(parameters[P_R]); }
-    if (!(parameters[P_L].empty())) { p_l = VariablePtr(parameters[P_L]); }
-    if (!(parameters[E_DIST].empty())) {
-        e_dist = double(parameters[E_DIST]);
-    } else if (e_x || e_y || e_z) {
+    if ((e_dist == 0.0) && (e_x || e_y || e_z)) {
         throw SimpleException(M_IODEVICE_MESSAGE_DOMAIN, (boost::format("%s is required to compute %s, %s, and %s")
                                                           % E_DIST % EX % EY % EZ));
     }
-    if (!(parameters[EYE_TIME].empty())) { e_time = VariablePtr(parameters[EYE_TIME]); }
 }
 
 
