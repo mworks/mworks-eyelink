@@ -225,13 +225,13 @@ Eyelink::~Eyelink() {
 bool Eyelink::update() {
     unique_lock lock(eyelinkDriverLock);
     
-    FSAMPLE evt;
+    ALLF_DATA data;
     MWTime inputtime;
     
     if (eyelink_is_connected())	{
         while (eyelink_get_next_data(nullptr)) {
             if (eyelink_in_data_block(1,0)) { //only if data contains samples
-                eyelink_get_float_data(&evt);
+                eyelink_get_float_data(&data);
                 
                 inputtime = this->clock->getCurrentTimeUS();
                 
@@ -242,137 +242,10 @@ bool Eyelink::update() {
                  */
                 
                 // now update all the variables
-                if (e_time) e_time->setValue( (long)evt.time ,inputtime);
+                if (e_time) e_time->setValue(long(data.fs.time), inputtime);
                 
-                if (evt.gx[RIGHT_EYE] != MISSING_DATA &&
-                    evt.gy[RIGHT_EYE] != MISSING_DATA &&
-                    evt.gx[LEFT_EYE] != MISSING_DATA &&
-                    evt.gy[LEFT_EYE] != MISSING_DATA &&
-                    (e_x || e_y || e_z))
-                {
-                    double p43x = evt.gx[LEFT_EYE]/e_dist + 1;
-                    double p43y = evt.gy[LEFT_EYE]/e_dist;
-                    
-                    double p21x = evt.gx[RIGHT_EYE]/e_dist - 2;
-                    double p21y = evt.gy[RIGHT_EYE]/e_dist;
-                    
-                    double d4321 = p43x * p21x + p43y * p21y + 1;
-                    double d4343 = p43x * p43x + p43y * p43y + 1;
-                    double d2121 = p21x * p21x + p21y * p21y + 1;
-                    
-                    double denom = d2121 * d4343 - d4321 * d4321;
-                    
-                    if (std::abs(denom) > 1e-6) { // should always be true when e_dist is really tracking range
-                        double numer = p43x * d4321 - p21x * d4343;
-                        
-                        double mua = numer / denom;
-                        double mub = (p43x + d4321 * mua) / d4343;
-                        
-                        double pax = 1 + mua * p21x;
-                        double pay = mua * p21y;
-                        double paz = -1 + mua; //-p4321z + mua * p4321z;
-                        double pbx = mub * p43x;
-                        double pby = mub * p43y;
-                        double pbz = -1 + mub; //-p4321z + mub * p4321z;
-                        
-                        if (e_x) e_x->setValue(pax + 0.5*(pbx-pax),inputtime);
-                        if (e_y) e_y->setValue(pay + 0.5*(pby-pay),inputtime);
-                        if (e_z) e_z->setValue(paz + 0.5*(pbz-paz),inputtime);
-                    }
-                } else {
-                    if (e_x && e_x->getValue().getFloat() != MISSING_DATA)
-                        e_x->setValue((float)MISSING_DATA,inputtime);
-                    if (e_y && e_y->getValue().getFloat() != MISSING_DATA)
-                        e_y->setValue((float)MISSING_DATA,inputtime);
-                    if (e_z && e_z->getValue().getFloat() != MISSING_DATA)
-                        e_z->setValue((float)MISSING_DATA,inputtime);
-                }
-                
-                if (evt.gx[RIGHT_EYE] != MISSING_DATA &&
-                    evt.gy[RIGHT_EYE] != MISSING_DATA)
-                {
-                    if (e_rx) e_rx->setValue( evt.gx[RIGHT_EYE] ,inputtime);
-                    if (e_ry) e_ry->setValue( evt.gy[RIGHT_EYE] ,inputtime);
-                } else {
-                    if (e_rx && e_rx->getValue().getFloat() != MISSING_DATA)
-                        e_rx->setValue((float)MISSING_DATA,inputtime);
-                    if (e_ry && e_ry->getValue().getFloat() != MISSING_DATA)
-                        e_ry->setValue((float)MISSING_DATA,inputtime);
-                }
-                
-                if (evt.gx[LEFT_EYE] != MISSING_DATA &&
-                    evt.gy[LEFT_EYE] != MISSING_DATA)
-                {
-                    if (e_lx) e_lx->setValue( evt.gx[LEFT_EYE] ,inputtime);
-                    if (e_ly) e_ly->setValue( evt.gy[LEFT_EYE] ,inputtime);
-                } else {
-                    if (e_lx && e_lx->getValue().getFloat() != MISSING_DATA)
-                        e_lx->setValue((float)MISSING_DATA,inputtime);
-                    if (e_ly && e_ly->getValue().getFloat() != MISSING_DATA)
-                        e_ly->setValue((float)MISSING_DATA,inputtime);
-                }
-                
-                if (evt.hx[RIGHT_EYE] != -7936.0f &&
-                    evt.hy[RIGHT_EYE] != -7936.0f)
-                {
-                    if (h_rx) h_rx->setValue( evt.hx[RIGHT_EYE] ,inputtime);
-                    if (h_ry) h_ry->setValue( evt.hy[RIGHT_EYE] ,inputtime);
-                } else {
-                    if (h_rx && h_rx->getValue().getFloat() != MISSING_DATA)
-                        h_rx->setValue((float)MISSING_DATA,inputtime);
-                    if (h_ry && h_ry->getValue().getFloat() != MISSING_DATA)
-                        h_ry->setValue((float)MISSING_DATA,inputtime);
-                }
-                
-                if (evt.hx[LEFT_EYE] != -7936.0f &&
-                    evt.hy[LEFT_EYE] != -7936.0f)
-                {
-                    if (h_lx) h_lx->setValue( evt.hx[LEFT_EYE] ,inputtime);
-                    if (h_ly) h_ly->setValue( evt.hy[LEFT_EYE] ,inputtime);
-                } else {
-                    if (h_lx && h_lx->getValue().getFloat() != MISSING_DATA)
-                        h_lx->setValue((float)MISSING_DATA,inputtime);
-                    if (h_ly && h_ly->getValue().getFloat() != MISSING_DATA)
-                        h_ly->setValue((float)MISSING_DATA,inputtime);
-                }
-                
-                if (evt.px[RIGHT_EYE] != MISSING_DATA &&
-                    evt.py[RIGHT_EYE] != MISSING_DATA)
-                {
-                    if (p_rx) p_rx->setValue( evt.px[RIGHT_EYE] ,inputtime);
-                    if (p_ry) p_ry->setValue( evt.py[RIGHT_EYE] ,inputtime);
-                } else {
-                    if (p_rx && p_rx->getValue().getFloat() != MISSING_DATA)
-                        p_rx->setValue((float)MISSING_DATA,inputtime);
-                    if (p_ry && p_ry->getValue().getFloat() != MISSING_DATA)
-                        p_ry->setValue((float)MISSING_DATA,inputtime);
-                }
-                
-                if (evt.px[LEFT_EYE] != MISSING_DATA &&
-                    evt.py[LEFT_EYE] != MISSING_DATA )
-                {
-                    if (p_lx) p_lx->setValue( evt.px[LEFT_EYE] ,inputtime);
-                    if (p_ly) p_ly->setValue( evt.py[LEFT_EYE] ,inputtime);
-                } else {
-                    if (p_lx && p_lx->getValue().getFloat() != MISSING_DATA)
-                        p_lx->setValue((float)MISSING_DATA,inputtime);
-                    if (p_ly && p_ly->getValue().getFloat() != MISSING_DATA)
-                        p_ly->setValue((float)MISSING_DATA,inputtime);
-                }
-                
-                if (evt.pa[RIGHT_EYE] != 0)
-                {
-                    if (p_r) p_r->setValue( evt.pa[RIGHT_EYE] ,inputtime);
-                } else {
-                    if (p_r && p_r->getValue().getFloat() != 0)
-                        p_r->setValue((float)MISSING_DATA,inputtime);
-                }
-                
-                if (evt.pa[LEFT_EYE] != 0) {
-                    if (p_l) p_l->setValue( evt.pa[LEFT_EYE] ,inputtime);
-                } else {
-                    if (p_l && p_l->getValue().getFloat() != 0)
-                        p_l->setValue((float)MISSING_DATA,inputtime);
+                if (data.fs.type == SAMPLE_TYPE) {
+                    handleSample(data.fs, inputtime);
                 }
             }
         }
@@ -466,6 +339,139 @@ bool Eyelink::stopDeviceIO() {
     }
     
     return stopped;
+}
+
+
+void Eyelink::handleSample(const FSAMPLE &evt, MWTime inputtime) {
+    if (evt.gx[RIGHT_EYE] != MISSING_DATA &&
+        evt.gy[RIGHT_EYE] != MISSING_DATA &&
+        evt.gx[LEFT_EYE] != MISSING_DATA &&
+        evt.gy[LEFT_EYE] != MISSING_DATA &&
+        (e_x || e_y || e_z))
+    {
+        double p43x = evt.gx[LEFT_EYE]/e_dist + 1;
+        double p43y = evt.gy[LEFT_EYE]/e_dist;
+        
+        double p21x = evt.gx[RIGHT_EYE]/e_dist - 2;
+        double p21y = evt.gy[RIGHT_EYE]/e_dist;
+        
+        double d4321 = p43x * p21x + p43y * p21y + 1;
+        double d4343 = p43x * p43x + p43y * p43y + 1;
+        double d2121 = p21x * p21x + p21y * p21y + 1;
+        
+        double denom = d2121 * d4343 - d4321 * d4321;
+        
+        if (std::abs(denom) > 1e-6) { // should always be true when e_dist is really tracking range
+            double numer = p43x * d4321 - p21x * d4343;
+            
+            double mua = numer / denom;
+            double mub = (p43x + d4321 * mua) / d4343;
+            
+            double pax = 1 + mua * p21x;
+            double pay = mua * p21y;
+            double paz = -1 + mua; //-p4321z + mua * p4321z;
+            double pbx = mub * p43x;
+            double pby = mub * p43y;
+            double pbz = -1 + mub; //-p4321z + mub * p4321z;
+            
+            if (e_x) e_x->setValue(pax + 0.5*(pbx-pax),inputtime);
+            if (e_y) e_y->setValue(pay + 0.5*(pby-pay),inputtime);
+            if (e_z) e_z->setValue(paz + 0.5*(pbz-paz),inputtime);
+        }
+    } else {
+        if (e_x && e_x->getValue().getFloat() != MISSING_DATA)
+            e_x->setValue((float)MISSING_DATA,inputtime);
+        if (e_y && e_y->getValue().getFloat() != MISSING_DATA)
+            e_y->setValue((float)MISSING_DATA,inputtime);
+        if (e_z && e_z->getValue().getFloat() != MISSING_DATA)
+            e_z->setValue((float)MISSING_DATA,inputtime);
+    }
+    
+    if (evt.gx[RIGHT_EYE] != MISSING_DATA &&
+        evt.gy[RIGHT_EYE] != MISSING_DATA)
+    {
+        if (e_rx) e_rx->setValue( evt.gx[RIGHT_EYE] ,inputtime);
+        if (e_ry) e_ry->setValue( evt.gy[RIGHT_EYE] ,inputtime);
+    } else {
+        if (e_rx && e_rx->getValue().getFloat() != MISSING_DATA)
+            e_rx->setValue((float)MISSING_DATA,inputtime);
+        if (e_ry && e_ry->getValue().getFloat() != MISSING_DATA)
+            e_ry->setValue((float)MISSING_DATA,inputtime);
+    }
+    
+    if (evt.gx[LEFT_EYE] != MISSING_DATA &&
+        evt.gy[LEFT_EYE] != MISSING_DATA)
+    {
+        if (e_lx) e_lx->setValue( evt.gx[LEFT_EYE] ,inputtime);
+        if (e_ly) e_ly->setValue( evt.gy[LEFT_EYE] ,inputtime);
+    } else {
+        if (e_lx && e_lx->getValue().getFloat() != MISSING_DATA)
+            e_lx->setValue((float)MISSING_DATA,inputtime);
+        if (e_ly && e_ly->getValue().getFloat() != MISSING_DATA)
+            e_ly->setValue((float)MISSING_DATA,inputtime);
+    }
+    
+    if (evt.hx[RIGHT_EYE] != -7936.0f &&
+        evt.hy[RIGHT_EYE] != -7936.0f)
+    {
+        if (h_rx) h_rx->setValue( evt.hx[RIGHT_EYE] ,inputtime);
+        if (h_ry) h_ry->setValue( evt.hy[RIGHT_EYE] ,inputtime);
+    } else {
+        if (h_rx && h_rx->getValue().getFloat() != MISSING_DATA)
+            h_rx->setValue((float)MISSING_DATA,inputtime);
+        if (h_ry && h_ry->getValue().getFloat() != MISSING_DATA)
+            h_ry->setValue((float)MISSING_DATA,inputtime);
+    }
+    
+    if (evt.hx[LEFT_EYE] != -7936.0f &&
+        evt.hy[LEFT_EYE] != -7936.0f)
+    {
+        if (h_lx) h_lx->setValue( evt.hx[LEFT_EYE] ,inputtime);
+        if (h_ly) h_ly->setValue( evt.hy[LEFT_EYE] ,inputtime);
+    } else {
+        if (h_lx && h_lx->getValue().getFloat() != MISSING_DATA)
+            h_lx->setValue((float)MISSING_DATA,inputtime);
+        if (h_ly && h_ly->getValue().getFloat() != MISSING_DATA)
+            h_ly->setValue((float)MISSING_DATA,inputtime);
+    }
+    
+    if (evt.px[RIGHT_EYE] != MISSING_DATA &&
+        evt.py[RIGHT_EYE] != MISSING_DATA)
+    {
+        if (p_rx) p_rx->setValue( evt.px[RIGHT_EYE] ,inputtime);
+        if (p_ry) p_ry->setValue( evt.py[RIGHT_EYE] ,inputtime);
+    } else {
+        if (p_rx && p_rx->getValue().getFloat() != MISSING_DATA)
+            p_rx->setValue((float)MISSING_DATA,inputtime);
+        if (p_ry && p_ry->getValue().getFloat() != MISSING_DATA)
+            p_ry->setValue((float)MISSING_DATA,inputtime);
+    }
+    
+    if (evt.px[LEFT_EYE] != MISSING_DATA &&
+        evt.py[LEFT_EYE] != MISSING_DATA )
+    {
+        if (p_lx) p_lx->setValue( evt.px[LEFT_EYE] ,inputtime);
+        if (p_ly) p_ly->setValue( evt.py[LEFT_EYE] ,inputtime);
+    } else {
+        if (p_lx && p_lx->getValue().getFloat() != MISSING_DATA)
+            p_lx->setValue((float)MISSING_DATA,inputtime);
+        if (p_ly && p_ly->getValue().getFloat() != MISSING_DATA)
+            p_ly->setValue((float)MISSING_DATA,inputtime);
+    }
+    
+    if (evt.pa[RIGHT_EYE] != 0) {
+        if (p_r) p_r->setValue( evt.pa[RIGHT_EYE] ,inputtime);
+    } else {
+        if (p_r && p_r->getValue().getFloat() != 0)
+            p_r->setValue((float)MISSING_DATA,inputtime);
+    }
+    
+    if (evt.pa[LEFT_EYE] != 0) {
+        if (p_l) p_l->setValue( evt.pa[LEFT_EYE] ,inputtime);
+    } else {
+        if (p_l && p_l->getValue().getFloat() != 0)
+            p_l->setValue((float)MISSING_DATA,inputtime);
+    }
 }
 
 
