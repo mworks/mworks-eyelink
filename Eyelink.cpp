@@ -226,26 +226,26 @@ bool Eyelink::update() {
     unique_lock lock(eyelinkDriverLock);
     
     ALLF_DATA data;
-    MWTime inputtime;
+    MWTime currentTime;
     
     if (eyelink_is_connected())	{
         while (eyelink_get_next_data(nullptr)) {
             if (eyelink_in_data_block(1,0)) { //only if data contains samples
                 eyelink_get_float_data(&data);
                 
-                inputtime = this->clock->getCurrentTimeUS();
+                currentTime = clock->getCurrentTimeUS();
                 
                 /*
                  // occasionally, send the current time together with the sample time back to the tracker (and log it there)
                  if ( ack_msg_counter++ % 512 == 0 )
-                 eyemsg_printf((char*)"SAMPLE %ld received %lld",(long)evt.time,inputtime);
+                 eyemsg_printf((char*)"SAMPLE %ld received %lld",(long)evt.time,currentTime);
                  */
                 
                 // now update all the variables
-                if (e_time) e_time->setValue(long(data.fs.time), inputtime);
+                if (e_time) e_time->setValue(long(data.fs.time), currentTime);
                 
                 if (data.fs.type == SAMPLE_TYPE) {
-                    handleSample(data.fs, inputtime);
+                    handleSample(data.fs, currentTime);
                 }
             }
         }
@@ -297,6 +297,20 @@ bool Eyelink::startDeviceIO() {
 }
 
 
+static inline void assignValue(const boost::shared_ptr<Variable> &var, Datum value, MWTime time) {
+    if (var) {
+        var->setValue(value, time);
+    }
+}
+
+
+static inline void assignMissingData(const boost::shared_ptr<Variable> &var, MWTime time) {
+    if (var && var->getValue().getFloat() != MISSING_DATA) {
+        var->setValue(float(MISSING_DATA), time);
+    }
+}
+
+
 bool Eyelink::stopDeviceIO() {
     unique_lock lock(eyelinkDriverLock);
     
@@ -315,24 +329,25 @@ bool Eyelink::stopDeviceIO() {
             mwarning(M_IODEVICE_MESSAGE_DOMAIN, "Warning! Could not stop EyeLink! Connection Lost!! (StopIO)");
         }
         
-        if (e_time) e_time->setValue( (float)MISSING_DATA );
-        if (e_rx) e_rx->setValue( (float)MISSING_DATA );
-        if (e_ry) e_ry->setValue( (float)MISSING_DATA );
-        if (e_lx) e_lx->setValue( (float)MISSING_DATA );
-        if (e_ly) e_ly->setValue( (float)MISSING_DATA );
-        if (e_x) e_x->setValue( (float)MISSING_DATA );
-        if (e_y) e_y->setValue( (float)MISSING_DATA );
-        if (e_z) e_z->setValue( (float)MISSING_DATA );
-        if (h_rx) h_rx->setValue( (float)MISSING_DATA );
-        if (h_ry) h_ry->setValue( (float)MISSING_DATA );
-        if (h_lx) h_lx->setValue( (float)MISSING_DATA );
-        if (h_ly) h_ly->setValue( (float)MISSING_DATA );
-        if (p_rx) p_rx->setValue( (float)MISSING_DATA );
-        if (p_ry) p_ry->setValue( (float)MISSING_DATA );
-        if (p_lx) p_lx->setValue( (float)MISSING_DATA );
-        if (p_ly) p_ly->setValue( (float)MISSING_DATA );
-        if (p_r) p_r->setValue( (float)MISSING_DATA );
-        if (p_l) p_l->setValue( (float)MISSING_DATA );
+        auto currentTime = clock->getCurrentTimeUS();
+        assignMissingData(e_rx, currentTime);
+        assignMissingData(e_ry, currentTime);
+        assignMissingData(e_lx, currentTime);
+        assignMissingData(e_ly, currentTime);
+        assignMissingData(e_x, currentTime);
+        assignMissingData(e_y, currentTime);
+        assignMissingData(e_z, currentTime);
+        assignMissingData(h_rx, currentTime);
+        assignMissingData(h_ry, currentTime);
+        assignMissingData(h_lx, currentTime);
+        assignMissingData(h_ly, currentTime);
+        assignMissingData(p_rx, currentTime);
+        assignMissingData(p_ry, currentTime);
+        assignMissingData(p_lx, currentTime);
+        assignMissingData(p_ly, currentTime);
+        assignMissingData(p_r, currentTime);
+        assignMissingData(p_l, currentTime);
+        assignMissingData(e_time, currentTime);
         
         stopped = true;
         mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Eyelink successfully stopped.");
@@ -342,18 +357,18 @@ bool Eyelink::stopDeviceIO() {
 }
 
 
-void Eyelink::handleSample(const FSAMPLE &evt, MWTime inputtime) {
-    if (evt.gx[RIGHT_EYE] != MISSING_DATA &&
-        evt.gy[RIGHT_EYE] != MISSING_DATA &&
-        evt.gx[LEFT_EYE] != MISSING_DATA &&
-        evt.gy[LEFT_EYE] != MISSING_DATA &&
+void Eyelink::handleSample(const FSAMPLE &sample, MWTime sampleTime) {
+    if (sample.gx[RIGHT_EYE] != MISSING_DATA &&
+        sample.gy[RIGHT_EYE] != MISSING_DATA &&
+        sample.gx[LEFT_EYE] != MISSING_DATA &&
+        sample.gy[LEFT_EYE] != MISSING_DATA &&
         (e_x || e_y || e_z))
     {
-        double p43x = evt.gx[LEFT_EYE]/e_dist + 1;
-        double p43y = evt.gy[LEFT_EYE]/e_dist;
+        double p43x = sample.gx[LEFT_EYE]/e_dist + 1;
+        double p43y = sample.gy[LEFT_EYE]/e_dist;
         
-        double p21x = evt.gx[RIGHT_EYE]/e_dist - 2;
-        double p21y = evt.gy[RIGHT_EYE]/e_dist;
+        double p21x = sample.gx[RIGHT_EYE]/e_dist - 2;
+        double p21y = sample.gy[RIGHT_EYE]/e_dist;
         
         double d4321 = p43x * p21x + p43y * p21y + 1;
         double d4343 = p43x * p43x + p43y * p43y + 1;
@@ -369,108 +384,91 @@ void Eyelink::handleSample(const FSAMPLE &evt, MWTime inputtime) {
             
             double pax = 1 + mua * p21x;
             double pay = mua * p21y;
-            double paz = -1 + mua; //-p4321z + mua * p4321z;
+            double paz = -1 + mua;
             double pbx = mub * p43x;
             double pby = mub * p43y;
-            double pbz = -1 + mub; //-p4321z + mub * p4321z;
+            double pbz = -1 + mub;
             
-            if (e_x) e_x->setValue(pax + 0.5*(pbx-pax),inputtime);
-            if (e_y) e_y->setValue(pay + 0.5*(pby-pay),inputtime);
-            if (e_z) e_z->setValue(paz + 0.5*(pbz-paz),inputtime);
+            assignValue(e_x, pax + 0.5*(pbx-pax), sampleTime);
+            assignValue(e_y, pay + 0.5*(pby-pay), sampleTime);
+            assignValue(e_z, paz + 0.5*(pbz-paz), sampleTime);
         }
     } else {
-        if (e_x && e_x->getValue().getFloat() != MISSING_DATA)
-            e_x->setValue((float)MISSING_DATA,inputtime);
-        if (e_y && e_y->getValue().getFloat() != MISSING_DATA)
-            e_y->setValue((float)MISSING_DATA,inputtime);
-        if (e_z && e_z->getValue().getFloat() != MISSING_DATA)
-            e_z->setValue((float)MISSING_DATA,inputtime);
+        assignMissingData(e_x, sampleTime);
+        assignMissingData(e_y, sampleTime);
+        assignMissingData(e_z, sampleTime);
     }
     
-    if (evt.gx[RIGHT_EYE] != MISSING_DATA &&
-        evt.gy[RIGHT_EYE] != MISSING_DATA)
+    if (sample.gx[RIGHT_EYE] != MISSING_DATA &&
+        sample.gy[RIGHT_EYE] != MISSING_DATA)
     {
-        if (e_rx) e_rx->setValue( evt.gx[RIGHT_EYE] ,inputtime);
-        if (e_ry) e_ry->setValue( evt.gy[RIGHT_EYE] ,inputtime);
+        assignValue(e_rx, sample.gx[RIGHT_EYE], sampleTime);
+        assignValue(e_ry, sample.gy[RIGHT_EYE], sampleTime);
     } else {
-        if (e_rx && e_rx->getValue().getFloat() != MISSING_DATA)
-            e_rx->setValue((float)MISSING_DATA,inputtime);
-        if (e_ry && e_ry->getValue().getFloat() != MISSING_DATA)
-            e_ry->setValue((float)MISSING_DATA,inputtime);
+        assignMissingData(e_rx, sampleTime);
+        assignMissingData(e_ry, sampleTime);
     }
     
-    if (evt.gx[LEFT_EYE] != MISSING_DATA &&
-        evt.gy[LEFT_EYE] != MISSING_DATA)
+    if (sample.gx[LEFT_EYE] != MISSING_DATA &&
+        sample.gy[LEFT_EYE] != MISSING_DATA)
     {
-        if (e_lx) e_lx->setValue( evt.gx[LEFT_EYE] ,inputtime);
-        if (e_ly) e_ly->setValue( evt.gy[LEFT_EYE] ,inputtime);
+        assignValue(e_lx, sample.gx[LEFT_EYE], sampleTime);
+        assignValue(e_ly, sample.gy[LEFT_EYE], sampleTime);
     } else {
-        if (e_lx && e_lx->getValue().getFloat() != MISSING_DATA)
-            e_lx->setValue((float)MISSING_DATA,inputtime);
-        if (e_ly && e_ly->getValue().getFloat() != MISSING_DATA)
-            e_ly->setValue((float)MISSING_DATA,inputtime);
+        assignMissingData(e_lx, sampleTime);
+        assignMissingData(e_ly, sampleTime);
     }
     
-    if (evt.hx[RIGHT_EYE] != -7936.0f &&
-        evt.hy[RIGHT_EYE] != -7936.0f)
+    if (sample.hx[RIGHT_EYE] != -7936.0f &&
+        sample.hy[RIGHT_EYE] != -7936.0f)
     {
-        if (h_rx) h_rx->setValue( evt.hx[RIGHT_EYE] ,inputtime);
-        if (h_ry) h_ry->setValue( evt.hy[RIGHT_EYE] ,inputtime);
+        assignValue(h_rx, sample.hx[RIGHT_EYE], sampleTime);
+        assignValue(h_ry, sample.hy[RIGHT_EYE], sampleTime);
     } else {
-        if (h_rx && h_rx->getValue().getFloat() != MISSING_DATA)
-            h_rx->setValue((float)MISSING_DATA,inputtime);
-        if (h_ry && h_ry->getValue().getFloat() != MISSING_DATA)
-            h_ry->setValue((float)MISSING_DATA,inputtime);
+        assignMissingData(h_rx, sampleTime);
+        assignMissingData(h_ry, sampleTime);
     }
     
-    if (evt.hx[LEFT_EYE] != -7936.0f &&
-        evt.hy[LEFT_EYE] != -7936.0f)
+    if (sample.hx[LEFT_EYE] != -7936.0f &&
+        sample.hy[LEFT_EYE] != -7936.0f)
     {
-        if (h_lx) h_lx->setValue( evt.hx[LEFT_EYE] ,inputtime);
-        if (h_ly) h_ly->setValue( evt.hy[LEFT_EYE] ,inputtime);
+        assignValue(h_lx, sample.hx[LEFT_EYE], sampleTime);
+        assignValue(h_ly, sample.hy[LEFT_EYE], sampleTime);
     } else {
-        if (h_lx && h_lx->getValue().getFloat() != MISSING_DATA)
-            h_lx->setValue((float)MISSING_DATA,inputtime);
-        if (h_ly && h_ly->getValue().getFloat() != MISSING_DATA)
-            h_ly->setValue((float)MISSING_DATA,inputtime);
+        assignMissingData(h_lx, sampleTime);
+        assignMissingData(h_ly, sampleTime);
     }
     
-    if (evt.px[RIGHT_EYE] != MISSING_DATA &&
-        evt.py[RIGHT_EYE] != MISSING_DATA)
+    if (sample.px[RIGHT_EYE] != MISSING_DATA &&
+        sample.py[RIGHT_EYE] != MISSING_DATA)
     {
-        if (p_rx) p_rx->setValue( evt.px[RIGHT_EYE] ,inputtime);
-        if (p_ry) p_ry->setValue( evt.py[RIGHT_EYE] ,inputtime);
+        assignValue(p_rx, sample.px[RIGHT_EYE], sampleTime);
+        assignValue(p_ry, sample.py[RIGHT_EYE], sampleTime);
     } else {
-        if (p_rx && p_rx->getValue().getFloat() != MISSING_DATA)
-            p_rx->setValue((float)MISSING_DATA,inputtime);
-        if (p_ry && p_ry->getValue().getFloat() != MISSING_DATA)
-            p_ry->setValue((float)MISSING_DATA,inputtime);
+        assignMissingData(p_rx, sampleTime);
+        assignMissingData(p_ry, sampleTime);
     }
     
-    if (evt.px[LEFT_EYE] != MISSING_DATA &&
-        evt.py[LEFT_EYE] != MISSING_DATA )
+    if (sample.px[LEFT_EYE] != MISSING_DATA &&
+        sample.py[LEFT_EYE] != MISSING_DATA)
     {
-        if (p_lx) p_lx->setValue( evt.px[LEFT_EYE] ,inputtime);
-        if (p_ly) p_ly->setValue( evt.py[LEFT_EYE] ,inputtime);
+        assignValue(p_lx, sample.px[LEFT_EYE], sampleTime);
+        assignValue(p_ly, sample.py[LEFT_EYE], sampleTime);
     } else {
-        if (p_lx && p_lx->getValue().getFloat() != MISSING_DATA)
-            p_lx->setValue((float)MISSING_DATA,inputtime);
-        if (p_ly && p_ly->getValue().getFloat() != MISSING_DATA)
-            p_ly->setValue((float)MISSING_DATA,inputtime);
+        assignMissingData(p_lx, sampleTime);
+        assignMissingData(p_ly, sampleTime);
     }
     
-    if (evt.pa[RIGHT_EYE] != 0) {
-        if (p_r) p_r->setValue( evt.pa[RIGHT_EYE] ,inputtime);
+    if (sample.pa[RIGHT_EYE] != 0) {
+        assignValue(p_r, sample.pa[RIGHT_EYE], sampleTime);
     } else {
-        if (p_r && p_r->getValue().getFloat() != 0)
-            p_r->setValue((float)MISSING_DATA,inputtime);
+        assignMissingData(p_r, sampleTime);
     }
     
-    if (evt.pa[LEFT_EYE] != 0) {
-        if (p_l) p_l->setValue( evt.pa[LEFT_EYE] ,inputtime);
+    if (sample.pa[LEFT_EYE] != 0) {
+        assignValue(p_l, sample.pa[LEFT_EYE], sampleTime);
     } else {
-        if (p_l && p_l->getValue().getFloat() != 0)
-            p_l->setValue((float)MISSING_DATA,inputtime);
+        assignMissingData(p_l, sampleTime);
     }
 }
 

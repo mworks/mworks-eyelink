@@ -50,7 +50,7 @@ public:
     
 private:
     bool update();
-    void handleSample(const FSAMPLE &evt, MWTime inputtime);
+    void handleSample(const FSAMPLE &sample, MWTime sampleTime);
     
     using unique_lock = std::unique_lock<std::mutex>;
     static unique_lock::mutex_type& eyelinkDriverLock;
