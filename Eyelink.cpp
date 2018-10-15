@@ -116,68 +116,73 @@ bool Eyelink::initialize() {
     unique_lock lock(eyelinkDriverLock);
     
     if (eyelinkInitialized) {
-        merror(M_IODEVICE_MESSAGE_DOMAIN,"Eyelink was previously initialized! Trying again, but this is dangerous!!");
+        merror(M_IODEVICE_MESSAGE_DOMAIN,
+               "EyeLink was previously initialized.  Make sure your experiment contains only one EyeLink device.");
+        return false;
     }
     
-    eyelinkInitialized = false;
-    
-    // Initializes the link
-    //mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Trying to find Eyelink System at %s",tracker_ip);
     if (set_eyelink_address(const_cast<char *>(tracker_ip.c_str()))) {
-        merror(M_IODEVICE_MESSAGE_DOMAIN,"Failed to set Tracker to address %s", tracker_ip.c_str());
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot set EyeLink tracker's IP address to \"%s\"", tracker_ip.c_str());
+        return false;
     }
     
     if (open_eyelink_connection(0)) {
-        merror(M_IODEVICE_MESSAGE_DOMAIN,"Failed to connect to Tracker at %s", tracker_ip.c_str());
-    } else {
-        ELINKNODE node;
-        
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot connect to EyeLink tracker at %s", tracker_ip.c_str());
+        return false;
+    }
+    
+    // Open data file
+    {
         // generate data file name
         time_t now = time(nullptr);
         struct tm* t = gmtime(&now);
-        
         sprintf(data_file_name, "%02d%06d.edf",(t->tm_year-100),t->tm_yday*1440 + t->tm_hour*60 + t->tm_min);
         //YYMMMMMM : YY=Years since 2k, MMMMMM=Minutes in current year
         
         if (open_data_file(data_file_name)) {
-            mwarning(M_IODEVICE_MESSAGE_DOMAIN,"Eyelink datafile setting failed (%s)",data_file_name);
+            mwarning(M_IODEVICE_MESSAGE_DOMAIN, "Cannot open EyeLink data file \"%s\"", data_file_name);
         } else {
-            mprintf(M_IODEVICE_MESSAGE_DOMAIN,"Eyelink logs to local file %s",data_file_name);
+            mprintf(M_IODEVICE_MESSAGE_DOMAIN, "EyeLink logging to local file \"%s\"", data_file_name);
         }
-        
-        // Tell the tracker what data to include in samples
-        if (OK_RESULT != eyecmd_printf("link_sample_data = LEFT,RIGHT,GAZE,HREF,PUPIL,AREA")) {
-            mwarning(M_IODEVICE_MESSAGE_DOMAIN,
-                     "Eyelink did not respond to link_sample_data command; sample data may be incomplete");
-        }
-        
-        // tell the tracker who we are
-        eyelink_set_name((char*)("MWorks_over_Socket"));
-        
-        // verify the name
-        if (eyelink_get_node(0,&node) != OK_RESULT) {
-            merror(M_IODEVICE_MESSAGE_DOMAIN,"Error, EyeLink doesn't respond");
-        } else {
-            eyemsg_printf((char*)("%s connected"), node.name);
-        }
-        
-        // Enable link data reception
-        eyelink_reset_data(1);
     }
     
-    // Eyelink should now be in "TCP-Link Open" mode
-    
-    if (eyelink_is_connected()) {
-        tracker_version = eyelink_get_tracker_version(version_info);
-        mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Eyelink %d System Version %s connected via Socket",tracker_version,version_info);
-        
-        eyelinkInitialized = true;
-        stopped = true;
-    } else {
-        merror(M_IODEVICE_MESSAGE_DOMAIN,"Error, Eyelink Connection could not be established");
+    // Tell the tracker what data to include in samples
+    if (eyecmd_printf("link_sample_data = LEFT,RIGHT,GAZE,HREF,PUPIL,AREA")) {
+        mwarning(M_IODEVICE_MESSAGE_DOMAIN,
+                 "EyeLink did not respond to link_sample_data command; sample data may be incomplete");
     }
     
-    return eyelinkInitialized;
+    // tell the tracker who we are
+    eyelink_set_name(const_cast<char *>("MWorks_over_Socket"));
+    
+    // verify the name
+    {
+        ELINKNODE node;
+        if (eyelink_get_node(0, &node)) {
+            mwarning(M_IODEVICE_MESSAGE_DOMAIN, "Cannot retrieve EyeLink node name for this computer");
+        } else {
+            eyemsg_printf("%s connected", node.name);
+        }
+    }
+    
+    // Enable link data reception
+    (void)eyelink_reset_data(1);  // Always returns zero
+    
+    tracker_version = eyelink_get_tracker_version(version_info);
+    if (0 == tracker_version) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot establish connection to EyeLink");
+        return false;
+    }
+    
+    mprintf(M_IODEVICE_MESSAGE_DOMAIN,
+            "EyeLink %d system version %s connected via socket",
+            tracker_version,
+            version_info);
+    
+    eyelinkInitialized = true;
+    stopped = true;
+    
+    return true;
 }
 
 
@@ -221,6 +226,7 @@ Eyelink::~Eyelink() {
         eyelinkInitialized = false;
     }
 }
+
 
 bool Eyelink::update() {
     unique_lock lock(eyelinkDriverLock);
