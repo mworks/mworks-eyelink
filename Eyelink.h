@@ -49,7 +49,7 @@ public:
     bool stopDeviceIO() override;
     
 private:
-    bool update();
+    void update();
     void handleSample(const FSAMPLE &sample, MWTime sampleTime);
     
     using unique_lock = std::unique_lock<std::mutex>;
@@ -76,7 +76,7 @@ private:
     const boost::shared_ptr<Variable> p_l;
     const double e_dist;
     const boost::shared_ptr<Variable> e_time;
-    const MWorksTime update_period;
+    const MWTime update_period;
     
     const boost::shared_ptr<Clock> clock;
     boost::shared_ptr<ScheduleTask> schedule_node;

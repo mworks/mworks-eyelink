@@ -67,7 +67,7 @@ void Eyelink::describeComponent(ComponentInfo &info) {
     info.addParameter(P_L, false);
     info.addParameter(E_DIST, false);
     info.addParameter(EYE_TIME, false);
-    info.addParameter(UPDATE_PERIOD, true, "1ms");
+    info.addParameter(UPDATE_PERIOD);
 }
 
 
@@ -116,38 +116,29 @@ Eyelink::Eyelink(const ParameterValueMap &parameters) :
 Eyelink::~Eyelink() {
     unique_lock lock(eyelinkDriverLock);
     
+    if (schedule_node) {
+        schedule_node->cancel();
+        schedule_node.reset();
+    }
+    
     if (eyelinkInitialized) {
-        if (running) {
-            mwarning(M_IODEVICE_MESSAGE_DOMAIN,"Eyelink is still running !");
-            //eyelink stop recording
-            if (eyelink_is_connected()) { stop_recording(); }
-        }
-        
-        if (schedule_node) {
-            schedule_node->cancel();
-            schedule_node.reset();
-        }
-        
         if (eyelink_is_connected()) {
-            // Places EyeLink tracker in off-line (idle) mode
+            stop_recording();
             set_offline_mode();
-            // close any open data files
             
-            if ( close_data_file() == 0 ) {
-                mprintf(M_IODEVICE_MESSAGE_DOMAIN,"Eyelink closed data file %s.",data_file_name);
+            if (0 == close_data_file()) {
+                mprintf(M_IODEVICE_MESSAGE_DOMAIN, "EyeLink closed data file \"%s\"", data_file_name);
             }
             
             // disconnect from tracker
             if (eyelink_close(1)) {
-                merror(M_IODEVICE_MESSAGE_DOMAIN, "Could not close Eyelink connection");
+                merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot close EyeLink connection");
+            } else {
+                mprintf(M_IODEVICE_MESSAGE_DOMAIN,
+                        "EyeLink %d system version %s disconnected",
+                        tracker_version,
+                        version_info);
             }
-            
-            //close_eyelink_system();
-            
-            mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Eyelink %d System Version %s disconnected.",tracker_version,version_info);
-            
-        } else {
-            mwarning(M_IODEVICE_MESSAGE_DOMAIN,"Error, Eyelink Shutdown failed");
         }
         
         eyelinkInitialized = false;
@@ -208,9 +199,6 @@ bool Eyelink::initialize() {
         }
     }
     
-    // Enable link data reception
-    (void)eyelink_reset_data(1);  // Always returns zero
-    
     tracker_version = eyelink_get_tracker_version(version_info);
     if (0 == tracker_version) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot establish connection to EyeLink");
@@ -231,13 +219,26 @@ bool Eyelink::initialize() {
 bool Eyelink::startDeviceIO() {
     unique_lock lock(eyelinkDriverLock);
     
-    if (eyelink_is_connected() && !running) {
-        //Eyelink to offline mode
-        set_offline_mode();
-        // Eyelink to record mode
-        if (start_recording(0,1,1,0)) {
-            merror(M_IODEVICE_MESSAGE_DOMAIN, "Eyelink does not start!");
+    if (!running) {
+        if (!eyelink_is_connected()) {
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot start EyeLink: connection lost");
+            return false;
         }
+        
+        // Set tracker to offline mode to stop whatever it may have been doing previously
+        set_offline_mode();
+        
+        // Prepare link buffers to receive new data (and discard any old data)
+        (void)eyelink_reset_data(1);  // Always returns zero
+        
+        // Start recording
+        if (start_recording(0, 1, 1, 0)) {
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot start EyeLink recording");
+            return false;
+        }
+        
+        running = true;
+        mprintf(M_IODEVICE_MESSAGE_DOMAIN, "EyeLink successfully started");
         
         boost::weak_ptr<Eyelink> weakThis(component_shared_from_this<Eyelink>());
         schedule_node = Scheduler::instance()->scheduleUS(std::string(FILELINE ": ") + getTag(),
@@ -254,21 +255,9 @@ bool Eyelink::startDeviceIO() {
                                                           M_DEFAULT_IODEVICE_WARN_SLOP_US,
                                                           M_DEFAULT_IODEVICE_FAIL_SLOP_US,
                                                           M_MISSED_EXECUTION_DROP);
-        
-        running = true;
-        mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Eyelink successfully started.");
-    } else {
-        mwarning(M_IODEVICE_MESSAGE_DOMAIN, "Warning! Could not start EyeLink! (StartIO)");
     }
     
-    return running;
-}
-
-
-static inline void assignValue(const boost::shared_ptr<Variable> &var, Datum value, MWTime time) {
-    if (var) {
-        var->setValue(value, time);
-    }
+    return true;
 }
 
 
@@ -288,15 +277,18 @@ bool Eyelink::stopDeviceIO() {
             schedule_node.reset();
         }
         
-        if (eyelink_is_connected()) {
-            //eyelink stop recording
-            stop_recording();
-            //go to eyelink offline mode
-            set_offline_mode();
-        } else {
-            mwarning(M_IODEVICE_MESSAGE_DOMAIN, "Warning! Could not stop EyeLink! Connection Lost!! (StopIO)");
+        if (!eyelink_is_connected()) {
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot stop EyeLink: connection lost");
+            return false;
         }
         
+        stop_recording();
+        set_offline_mode();
+        
+        running = false;
+        mprintf(M_IODEVICE_MESSAGE_DOMAIN, "EyeLink successfully stopped");
+        
+        // Set all outputs to MISSING_DATA
         auto currentTime = clock->getCurrentTimeUS();
         assignMissingData(e_rx, currentTime);
         assignMissingData(e_ry, currentTime);
@@ -316,36 +308,35 @@ bool Eyelink::stopDeviceIO() {
         assignMissingData(p_r, currentTime);
         assignMissingData(p_l, currentTime);
         assignMissingData(e_time, currentTime);
-        
-        running = false;
-        mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Eyelink successfully stopped.");
     }
     
-    return !running;
+    return true;
 }
 
 
-bool Eyelink::update() {
+static inline void assignValue(const boost::shared_ptr<Variable> &var, Datum value, MWTime time) {
+    if (var) {
+        var->setValue(value, time);
+    }
+}
+
+
+void Eyelink::update() {
     unique_lock lock(eyelinkDriverLock);
     
-    ALLF_DATA data;
-    MWTime currentTime;
+    if (!running) {
+        // If we've been stopped, don't try to read more data
+        return;
+    }
     
-    if (eyelink_is_connected())    {
+    if (eyelink_is_connected()) {
         while (eyelink_get_next_data(nullptr)) {
-            if (eyelink_in_data_block(1,0)) { //only if data contains samples
+            if (eyelink_in_data_block(1, 0)) {  // only if data contains samples
+                ALLF_DATA data;
                 eyelink_get_float_data(&data);
                 
-                currentTime = clock->getCurrentTimeUS();
-                
-                /*
-                 // occasionally, send the current time together with the sample time back to the tracker (and log it there)
-                 if ( ack_msg_counter++ % 512 == 0 )
-                 eyemsg_printf((char*)"SAMPLE %ld received %lld",(long)evt.time,currentTime);
-                 */
-                
-                // now update all the variables
-                if (e_time) e_time->setValue(long(data.fs.time), currentTime);
+                auto currentTime = clock->getCurrentTimeUS();
+                assignValue(e_time, long(data.fs.time), currentTime);
                 
                 if (data.fs.type == SAMPLE_TYPE) {
                     handleSample(data.fs, currentTime);
@@ -353,13 +344,11 @@ bool Eyelink::update() {
             }
         }
     } else {
-        if (++errors * update_period > (MWorksTime)1000000) { //just a quick hack but impossible to ignore by the user
-            merror(M_IODEVICE_MESSAGE_DOMAIN, "Fatal Error! EyeLink Connection Lost!!");
+        if (++errors * update_period > 1000000) { //just a quick hack but impossible to ignore by the user
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "EyeLink connection lost");
             errors = 0;
         }
     }
-    
-    return true;
 }
 
 
