@@ -113,6 +113,48 @@ Eyelink::Eyelink(const ParameterValueMap &parameters) :
 }
 
 
+Eyelink::~Eyelink() {
+    unique_lock lock(eyelinkDriverLock);
+    
+    if (eyelinkInitialized) {
+        if (running) {
+            mwarning(M_IODEVICE_MESSAGE_DOMAIN,"Eyelink is still running !");
+            //eyelink stop recording
+            if (eyelink_is_connected()) { stop_recording(); }
+        }
+        
+        if (schedule_node) {
+            schedule_node->cancel();
+            schedule_node.reset();
+        }
+        
+        if (eyelink_is_connected()) {
+            // Places EyeLink tracker in off-line (idle) mode
+            set_offline_mode();
+            // close any open data files
+            
+            if ( close_data_file() == 0 ) {
+                mprintf(M_IODEVICE_MESSAGE_DOMAIN,"Eyelink closed data file %s.",data_file_name);
+            }
+            
+            // disconnect from tracker
+            if (eyelink_close(1)) {
+                merror(M_IODEVICE_MESSAGE_DOMAIN, "Could not close Eyelink connection");
+            }
+            
+            //close_eyelink_system();
+            
+            mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Eyelink %d System Version %s disconnected.",tracker_version,version_info);
+            
+        } else {
+            mwarning(M_IODEVICE_MESSAGE_DOMAIN,"Error, Eyelink Shutdown failed");
+        }
+        
+        eyelinkInitialized = false;
+    }
+}
+
+
 bool Eyelink::initialize() {
     unique_lock lock(eyelinkDriverLock);
     
@@ -181,86 +223,6 @@ bool Eyelink::initialize() {
             version_info);
     
     eyelinkInitialized = true;
-    
-    return true;
-}
-
-
-Eyelink::~Eyelink() {
-    unique_lock lock(eyelinkDriverLock);
-    
-    if (eyelinkInitialized) {
-        if (running) {
-            mwarning(M_IODEVICE_MESSAGE_DOMAIN,"Eyelink is still running !");
-            //eyelink stop recording
-            if (eyelink_is_connected()) { stop_recording(); }
-        }
-        
-        if (schedule_node) {
-            schedule_node->cancel();
-            schedule_node.reset();
-        }
-        
-        if (eyelink_is_connected()) {
-            // Places EyeLink tracker in off-line (idle) mode
-            set_offline_mode();
-            // close any open data files
-            
-            if ( close_data_file() == 0 ) {
-                mprintf(M_IODEVICE_MESSAGE_DOMAIN,"Eyelink closed data file %s.",data_file_name);
-            }
-            
-            // disconnect from tracker
-            if (eyelink_close(1)) {
-                merror(M_IODEVICE_MESSAGE_DOMAIN, "Could not close Eyelink connection");
-            }
-            
-            //close_eyelink_system();
-            
-            mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Eyelink %d System Version %s disconnected.",tracker_version,version_info);
-            
-        } else {
-            mwarning(M_IODEVICE_MESSAGE_DOMAIN,"Error, Eyelink Shutdown failed");
-        }
-        
-        eyelinkInitialized = false;
-    }
-}
-
-
-bool Eyelink::update() {
-    unique_lock lock(eyelinkDriverLock);
-    
-    ALLF_DATA data;
-    MWTime currentTime;
-    
-    if (eyelink_is_connected())	{
-        while (eyelink_get_next_data(nullptr)) {
-            if (eyelink_in_data_block(1,0)) { //only if data contains samples
-                eyelink_get_float_data(&data);
-                
-                currentTime = clock->getCurrentTimeUS();
-                
-                /*
-                 // occasionally, send the current time together with the sample time back to the tracker (and log it there)
-                 if ( ack_msg_counter++ % 512 == 0 )
-                 eyemsg_printf((char*)"SAMPLE %ld received %lld",(long)evt.time,currentTime);
-                 */
-                
-                // now update all the variables
-                if (e_time) e_time->setValue(long(data.fs.time), currentTime);
-                
-                if (data.fs.type == SAMPLE_TYPE) {
-                    handleSample(data.fs, currentTime);
-                }
-            }
-        }
-    } else {
-        if (++errors * update_period > (MWorksTime)1000000) { //just a quick hack but impossible to ignore by the user
-            merror(M_IODEVICE_MESSAGE_DOMAIN, "Fatal Error! EyeLink Connection Lost!!");
-            errors = 0;
-        }
-    }
     
     return true;
 }
@@ -360,6 +322,44 @@ bool Eyelink::stopDeviceIO() {
     }
     
     return !running;
+}
+
+
+bool Eyelink::update() {
+    unique_lock lock(eyelinkDriverLock);
+    
+    ALLF_DATA data;
+    MWTime currentTime;
+    
+    if (eyelink_is_connected())    {
+        while (eyelink_get_next_data(nullptr)) {
+            if (eyelink_in_data_block(1,0)) { //only if data contains samples
+                eyelink_get_float_data(&data);
+                
+                currentTime = clock->getCurrentTimeUS();
+                
+                /*
+                 // occasionally, send the current time together with the sample time back to the tracker (and log it there)
+                 if ( ack_msg_counter++ % 512 == 0 )
+                 eyemsg_printf((char*)"SAMPLE %ld received %lld",(long)evt.time,currentTime);
+                 */
+                
+                // now update all the variables
+                if (e_time) e_time->setValue(long(data.fs.time), currentTime);
+                
+                if (data.fs.type == SAMPLE_TYPE) {
+                    handleSample(data.fs, currentTime);
+                }
+            }
+        }
+    } else {
+        if (++errors * update_period > (MWorksTime)1000000) { //just a quick hack but impossible to ignore by the user
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "Fatal Error! EyeLink Connection Lost!!");
+            errors = 0;
+        }
+    }
+    
+    return true;
 }
 
 
