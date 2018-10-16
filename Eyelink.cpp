@@ -37,6 +37,12 @@ const std::string Eyelink::P_LX("pupil_lx");
 const std::string Eyelink::P_LY("pupil_ly");
 const std::string Eyelink::P_R("pupil_size_r");
 const std::string Eyelink::P_L("pupil_size_l");
+const std::string Eyelink::BLINK_R("blink_r");
+const std::string Eyelink::BLINK_L("blink_l");
+const std::string Eyelink::SACCADE_R("saccade_r");
+const std::string Eyelink::SACCADE_L("saccade_l");
+const std::string Eyelink::FIXATION_R("fixation_r");
+const std::string Eyelink::FIXATION_L("fixation_l");
 const std::string Eyelink::E_DIST("tracking_dist");
 const std::string Eyelink::EYE_TIME("eye_time");
 const std::string Eyelink::UPDATE_PERIOD("data_interval");
@@ -65,6 +71,12 @@ void Eyelink::describeComponent(ComponentInfo &info) {
     info.addParameter(P_LY, false);
     info.addParameter(P_R, false);
     info.addParameter(P_L, false);
+    info.addParameter(BLINK_R, false);
+    info.addParameter(BLINK_L, false);
+    info.addParameter(SACCADE_R, false);
+    info.addParameter(SACCADE_L, false);
+    info.addParameter(FIXATION_R, false);
+    info.addParameter(FIXATION_L, false);
     info.addParameter(E_DIST, false);
     info.addParameter(EYE_TIME, false);
     info.addParameter(UPDATE_PERIOD);
@@ -99,6 +111,12 @@ Eyelink::Eyelink(const ParameterValueMap &parameters) :
     p_ly(optionalVariable(parameters[P_LY])),
     p_r(optionalVariable(parameters[P_R])),
     p_l(optionalVariable(parameters[P_L])),
+    blink_r(optionalVariable(parameters[BLINK_R])),
+    blink_l(optionalVariable(parameters[BLINK_L])),
+    saccade_r(optionalVariable(parameters[SACCADE_R])),
+    saccade_l(optionalVariable(parameters[SACCADE_L])),
+    fixation_r(optionalVariable(parameters[FIXATION_R])),
+    fixation_l(optionalVariable(parameters[FIXATION_L])),
     e_dist(parameters[E_DIST].empty() ? 0.0 : double(parameters[E_DIST])),
     e_time(optionalVariable(parameters[EYE_TIME])),
     update_period(parameters[UPDATE_PERIOD]),
@@ -165,6 +183,14 @@ bool Eyelink::initialize() {
         return false;
     }
     
+    // Tell the tracker what data to include in samples and which event types to send
+    if (eyecmd_printf("link_sample_data = LEFT,RIGHT,GAZE,HREF,PUPIL,AREA") ||
+        eyecmd_printf("link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK"))
+    {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot configure EyeLink link sample data and event filter");
+        return false;
+    }
+    
     // Open data file
     {
         // generate data file name
@@ -178,12 +204,6 @@ bool Eyelink::initialize() {
         } else {
             mprintf(M_IODEVICE_MESSAGE_DOMAIN, "EyeLink logging to local file \"%s\"", data_file_name);
         }
-    }
-    
-    // Tell the tracker what data to include in samples
-    if (eyecmd_printf("link_sample_data = LEFT,RIGHT,GAZE,HREF,PUPIL,AREA")) {
-        mwarning(M_IODEVICE_MESSAGE_DOMAIN,
-                 "EyeLink did not respond to link_sample_data command; sample data may be incomplete");
     }
     
     // tell the tracker who we are
@@ -232,7 +252,7 @@ bool Eyelink::startDeviceIO() {
         (void)eyelink_reset_data(1);  // Always returns zero
         
         // Start recording
-        if (start_recording(0, 1, 1, 0)) {
+        if (start_recording(0, 1, 1, 1)) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot start EyeLink recording");
             return false;
         }
@@ -268,6 +288,13 @@ static inline void assignMissingData(const boost::shared_ptr<Variable> &var, MWT
 }
 
 
+static inline void assignEyeState(const boost::shared_ptr<Variable> &var, bool state, MWTime time) {
+    if (var && var->getValue().getBool() != state) {
+        var->setValue(state, time);
+    }
+}
+
+
 bool Eyelink::stopDeviceIO() {
     unique_lock lock(eyelinkDriverLock);
     
@@ -288,7 +315,7 @@ bool Eyelink::stopDeviceIO() {
         running = false;
         mprintf(M_IODEVICE_MESSAGE_DOMAIN, "EyeLink successfully stopped");
         
-        // Set all outputs to MISSING_DATA
+        // Clear all outputs
         auto currentTime = clock->getCurrentTimeUS();
         assignMissingData(e_rx, currentTime);
         assignMissingData(e_ry, currentTime);
@@ -307,6 +334,12 @@ bool Eyelink::stopDeviceIO() {
         assignMissingData(p_ly, currentTime);
         assignMissingData(p_r, currentTime);
         assignMissingData(p_l, currentTime);
+        assignEyeState(blink_r, false, currentTime);
+        assignEyeState(blink_l, false, currentTime);
+        assignEyeState(saccade_r, false, currentTime);
+        assignEyeState(saccade_l, false, currentTime);
+        assignEyeState(fixation_r, false, currentTime);
+        assignEyeState(fixation_l, false, currentTime);
         assignMissingData(e_time, currentTime);
     }
     
@@ -331,7 +364,7 @@ void Eyelink::update() {
     
     if (eyelink_is_connected()) {
         while (eyelink_get_next_data(nullptr)) {
-            if (eyelink_in_data_block(1, 0)) {  // only if data contains samples
+            if (eyelink_in_data_block(1, 1)) {
                 ALLF_DATA data;
                 eyelink_get_float_data(&data);
                 
@@ -340,6 +373,8 @@ void Eyelink::update() {
                 
                 if (data.fs.type == SAMPLE_TYPE) {
                     handleSample(data.fs, currentTime);
+                } else {
+                    handleEvent(data.fe, currentTime);
                 }
             }
         }
@@ -464,6 +499,47 @@ void Eyelink::handleSample(const FSAMPLE &sample, MWTime sampleTime) {
         assignValue(p_l, sample.pa[LEFT_EYE], sampleTime);
     } else {
         assignMissingData(p_l, sampleTime);
+    }
+}
+
+
+static inline void updateEyeState(const FEVENT &event,
+                                  const boost::shared_ptr<Variable> &rightVar,
+                                  const boost::shared_ptr<Variable> &leftVar,
+                                  bool state,
+                                  MWTime eventTime)
+{
+    assignEyeState((event.eye == 1 ? rightVar : leftVar), state, eventTime);
+}
+
+
+void Eyelink::handleEvent(const FEVENT &event, MWTime eventTime) {
+    bool eyeState = false;
+    
+    switch (event.type) {
+        case STARTBLINK:
+            eyeState = true;
+            [[clang::fallthrough]];
+        case ENDBLINK:
+            updateEyeState(event, blink_r, blink_l, eyeState, eventTime);
+            break;
+            
+        case STARTSACC:
+            eyeState = true;
+            [[clang::fallthrough]];
+        case ENDSACC:
+            updateEyeState(event, saccade_r, saccade_l, eyeState, eventTime);
+            break;
+            
+        case STARTFIX:
+            eyeState = true;
+            [[clang::fallthrough]];
+        case ENDFIX:
+            updateEyeState(event, fixation_r, fixation_l, eyeState, eventTime);
+            break;
+            
+        default:
+            break;
     }
 }
 

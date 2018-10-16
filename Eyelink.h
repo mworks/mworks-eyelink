@@ -35,6 +35,12 @@ public:
     static const std::string P_LY;
     static const std::string P_R;
     static const std::string P_L;
+    static const std::string BLINK_R;
+    static const std::string BLINK_L;
+    static const std::string SACCADE_R;
+    static const std::string SACCADE_L;
+    static const std::string FIXATION_R;
+    static const std::string FIXATION_L;
     static const std::string E_DIST;
     static const std::string EYE_TIME;
     static const std::string UPDATE_PERIOD;
@@ -51,6 +57,7 @@ public:
 private:
     void update();
     void handleSample(const FSAMPLE &sample, MWTime sampleTime);
+    void handleEvent(const FEVENT &event, MWTime eventTime);
     
     using unique_lock = std::unique_lock<std::mutex>;
     static unique_lock::mutex_type& eyelinkDriverLock;
@@ -74,6 +81,12 @@ private:
     const boost::shared_ptr<Variable> p_ly;
     const boost::shared_ptr<Variable> p_r;
     const boost::shared_ptr<Variable> p_l;
+    const boost::shared_ptr<Variable> blink_r;
+    const boost::shared_ptr<Variable> blink_l;
+    const boost::shared_ptr<Variable> saccade_r;
+    const boost::shared_ptr<Variable> saccade_l;
+    const boost::shared_ptr<Variable> fixation_r;
+    const boost::shared_ptr<Variable> fixation_l;
     const double e_dist;
     const boost::shared_ptr<Variable> e_time;
     const MWTime update_period;

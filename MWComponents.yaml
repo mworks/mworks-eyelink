@@ -89,6 +89,36 @@ parameters:
     name: pupil_size_l
     description: Variable in which to store left pupil size or area
   - 
+    name: blink_r
+    description: >
+        Variable in which to store right eye blink state (true when blinking,
+        false otherwise)
+  - 
+    name: blink_l
+    description: >
+        Variable in which to store left eye blink state (true when blinking,
+        false otherwise)
+  - 
+    name: saccade_r
+    description: >
+        Variable in which to store right eye saccade state (true when in
+        saccade, false otherwise)
+  - 
+    name: saccade_l
+    description: >
+        Variable in which to store left eye saccade state (true when in
+        saccade, false otherwise)
+  - 
+    name: fixation_r
+    description: >
+        Variable in which to store right eye fixation state (true when fixating,
+        false otherwise)
+  - 
+    name: fixation_l
+    description: >
+        Variable in which to store left eye fixation state (true when fixating,
+        false otherwise)
+  - 
     name: eye_time
     description: Variable in which to store time of sample (on EyeLink clock)
 
