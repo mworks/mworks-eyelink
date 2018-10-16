@@ -103,7 +103,8 @@ Eyelink::Eyelink(const ParameterValueMap &parameters) :
     e_time(optionalVariable(parameters[EYE_TIME])),
     update_period(parameters[UPDATE_PERIOD]),
     clock(Clock::instance()),
-    errors(0)
+    errors(0),
+    running(false)
 {
     if ((e_dist == 0.0) && (e_x || e_y || e_z)) {
         throw SimpleException(M_IODEVICE_MESSAGE_DOMAIN, (boost::format("%s is required to compute %s, %s, and %s")
@@ -180,7 +181,6 @@ bool Eyelink::initialize() {
             version_info);
     
     eyelinkInitialized = true;
-    stopped = true;
     
     return true;
 }
@@ -190,7 +190,7 @@ Eyelink::~Eyelink() {
     unique_lock lock(eyelinkDriverLock);
     
     if (eyelinkInitialized) {
-        if (!stopped) {
+        if (running) {
             mwarning(M_IODEVICE_MESSAGE_DOMAIN,"Eyelink is still running !");
             //eyelink stop recording
             if (eyelink_is_connected()) { stop_recording(); }
@@ -269,7 +269,7 @@ bool Eyelink::update() {
 bool Eyelink::startDeviceIO() {
     unique_lock lock(eyelinkDriverLock);
     
-    if (eyelink_is_connected() && stopped) {
+    if (eyelink_is_connected() && !running) {
         //Eyelink to offline mode
         set_offline_mode();
         // Eyelink to record mode
@@ -293,13 +293,13 @@ bool Eyelink::startDeviceIO() {
                                                           M_DEFAULT_IODEVICE_FAIL_SLOP_US,
                                                           M_MISSED_EXECUTION_DROP);
         
-        stopped = false;
+        running = true;
         mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Eyelink successfully started.");
     } else {
         mwarning(M_IODEVICE_MESSAGE_DOMAIN, "Warning! Could not start EyeLink! (StartIO)");
     }
     
-    return !stopped;
+    return running;
 }
 
 
@@ -320,7 +320,7 @@ static inline void assignMissingData(const boost::shared_ptr<Variable> &var, MWT
 bool Eyelink::stopDeviceIO() {
     unique_lock lock(eyelinkDriverLock);
     
-    if (!stopped) {
+    if (running) {
         if (schedule_node) {
             schedule_node->cancel();
             schedule_node.reset();
@@ -355,11 +355,11 @@ bool Eyelink::stopDeviceIO() {
         assignMissingData(p_l, currentTime);
         assignMissingData(e_time, currentTime);
         
-        stopped = true;
+        running = false;
         mprintf(M_IODEVICE_MESSAGE_DOMAIN, "Eyelink successfully stopped.");
     }
     
-    return stopped;
+    return !running;
 }
 
 
