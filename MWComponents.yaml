@@ -119,7 +119,39 @@ parameters:
         Variable in which to store left eye fixation state (true when fixating,
         false otherwise)
   - 
+    name: cal_target_x
+    description: Variable in which to store calibration target x coordinate
+  - 
+    name: cal_target_y
+    description: Variable in which to store calibration target y coordinate
+  - 
+    name: cal_target_visible
+    description: >
+        Variable in which to store calibration target visibility state (true
+        when the target should be visible, false when it should be hidden)
+  - 
     name: eye_time
     description: Variable in which to store time of sample (on EyeLink clock)
+
+
+---
+
+
+name: EyeLink Tracker Setup
+signature: action/eyelink_tracker_setup
+isa: Action
+platform: macos
+description: >
+    Prepare for calibration and launch the setup screen of an `EyeLink Device`
+parameters: 
+  - 
+    name: device
+    required: yes
+    description: Name of EyeLink device
+  - 
+    name: calibration_type
+    options: [H3, HV3, HV5, HV9, HV13]
+    default: HV9
+    description: Desired calibration type
 
 

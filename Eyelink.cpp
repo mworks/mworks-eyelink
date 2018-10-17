@@ -13,6 +13,51 @@
 BEGIN_NAMESPACE_MW
 
 
+BEGIN_NAMESPACE()
+
+
+inline VariablePtr optionalVariable(const ParameterValue &param) {
+    if (param.empty()) {
+        return VariablePtr();
+    }
+    return VariablePtr(param);
+}
+
+
+inline void assignValue(const boost::shared_ptr<Variable> &var, Datum value, MWTime time) {
+    if (var) {
+        var->setValue(value, time);
+    }
+}
+
+
+inline void assignMissingData(const boost::shared_ptr<Variable> &var, MWTime time) {
+    if (var && var->getValue().getFloat() != MISSING_DATA) {
+        var->setValue(float(MISSING_DATA), time);
+    }
+}
+
+
+inline void assignEyeState(const boost::shared_ptr<Variable> &var, bool state, MWTime time) {
+    if (var && var->getValue().getBool() != state) {
+        var->setValue(state, time);
+    }
+}
+
+
+inline void updateEyeState(const FEVENT &event,
+                           const boost::shared_ptr<Variable> &rightVar,
+                           const boost::shared_ptr<Variable> &leftVar,
+                           bool state,
+                           MWTime eventTime)
+{
+    assignEyeState((event.eye == 1 ? rightVar : leftVar), state, eventTime);
+}
+
+
+END_NAMESPACE()
+
+
 // Allocate the lock on the heap so it's never destructed
 Eyelink::unique_lock::mutex_type& Eyelink::eyelinkDriverLock = *(new unique_lock::mutex_type);
 
@@ -43,6 +88,9 @@ const std::string Eyelink::SACCADE_R("saccade_r");
 const std::string Eyelink::SACCADE_L("saccade_l");
 const std::string Eyelink::FIXATION_R("fixation_r");
 const std::string Eyelink::FIXATION_L("fixation_l");
+const std::string Eyelink::CAL_TARGET_X("cal_target_x");
+const std::string Eyelink::CAL_TARGET_Y("cal_target_y");
+const std::string Eyelink::CAL_TARGET_VISIBLE("cal_target_visible");
 const std::string Eyelink::E_DIST("tracking_dist");
 const std::string Eyelink::EYE_TIME("eye_time");
 const std::string Eyelink::UPDATE_PERIOD("data_interval");
@@ -77,17 +125,12 @@ void Eyelink::describeComponent(ComponentInfo &info) {
     info.addParameter(SACCADE_L, false);
     info.addParameter(FIXATION_R, false);
     info.addParameter(FIXATION_L, false);
+    info.addParameter(CAL_TARGET_X, false);
+    info.addParameter(CAL_TARGET_Y, false);
+    info.addParameter(CAL_TARGET_VISIBLE, false);
     info.addParameter(E_DIST, false);
     info.addParameter(EYE_TIME, false);
     info.addParameter(UPDATE_PERIOD);
-}
-
-
-static inline VariablePtr optionalVariable(const ParameterValue &param) {
-    if (param.empty()) {
-        return VariablePtr();
-    }
-    return VariablePtr(param);
 }
 
 
@@ -117,6 +160,9 @@ Eyelink::Eyelink(const ParameterValueMap &parameters) :
     saccade_l(optionalVariable(parameters[SACCADE_L])),
     fixation_r(optionalVariable(parameters[FIXATION_R])),
     fixation_l(optionalVariable(parameters[FIXATION_L])),
+    cal_target_x(optionalVariable(parameters[CAL_TARGET_X])),
+    cal_target_y(optionalVariable(parameters[CAL_TARGET_Y])),
+    cal_target_visible(optionalVariable(parameters[CAL_TARGET_VISIBLE])),
     e_dist(parameters[E_DIST].empty() ? 0.0 : double(parameters[E_DIST])),
     e_time(optionalVariable(parameters[EYE_TIME])),
     update_period(parameters[UPDATE_PERIOD]),
@@ -156,6 +202,16 @@ Eyelink::~Eyelink() {
                         "EyeLink %d system version %s disconnected",
                         tracker_version,
                         version_info);
+            }
+        }
+        
+        // Reset display graphics hook functions
+        {
+            HOOKFCNS2 hooks;
+            std::memset(&hooks, 0, sizeof(hooks));
+            hooks.major = 1;
+            if (setup_graphic_hook_functions_V2(&hooks)) {
+                merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot reset EyeLink display graphics hook functions");
             }
         }
         
@@ -216,6 +272,22 @@ bool Eyelink::initialize() {
             mwarning(M_IODEVICE_MESSAGE_DOMAIN, "Cannot retrieve EyeLink node name for this computer");
         } else {
             eyemsg_printf("%s connected", node.name);
+        }
+    }
+    
+    // Set display graphics hook functions
+    {
+        HOOKFCNS2 hooks;
+        std::memset(&hooks, 0, sizeof(hooks));
+        hooks.major = 1;
+        hooks.userData = this;
+        hooks.clear_cal_display_hook = clear_cal_display_hook;
+        hooks.erase_cal_target_hook = erase_cal_target_hook;
+        hooks.draw_cal_target_hook = draw_cal_target_hook;
+        
+        if (setup_graphic_hook_functions_V2(&hooks)) {
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot set EyeLink display graphics hook functions");
+            return false;
         }
     }
     
@@ -281,20 +353,6 @@ bool Eyelink::startDeviceIO() {
 }
 
 
-static inline void assignMissingData(const boost::shared_ptr<Variable> &var, MWTime time) {
-    if (var && var->getValue().getFloat() != MISSING_DATA) {
-        var->setValue(float(MISSING_DATA), time);
-    }
-}
-
-
-static inline void assignEyeState(const boost::shared_ptr<Variable> &var, bool state, MWTime time) {
-    if (var && var->getValue().getBool() != state) {
-        var->setValue(state, time);
-    }
-}
-
-
 bool Eyelink::stopDeviceIO() {
     unique_lock lock(eyelinkDriverLock);
     
@@ -347,10 +405,61 @@ bool Eyelink::stopDeviceIO() {
 }
 
 
-static inline void assignValue(const boost::shared_ptr<Variable> &var, Datum value, MWTime time) {
-    if (var) {
-        var->setValue(value, time);
+bool Eyelink::doTrackerSetup(const std::string &calibrationType) {
+    unique_lock lock(eyelinkDriverLock);
+    
+    if (!eyelink_is_connected()) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot launch EyeLink setup: connection lost");
+        return false;
     }
+    
+    if (running) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot launch EyeLink setup: device is running");
+        return false;
+    }
+    
+    if (!(cal_target_x && cal_target_y && cal_target_visible)) {
+        merror(M_IODEVICE_MESSAGE_DOMAIN,
+               "%s, %s, and %s are required to perform EyeLink calibration",
+               CAL_TARGET_X.c_str(),
+               CAL_TARGET_Y.c_str(),
+               CAL_TARGET_VISIBLE.c_str());
+        return false;
+    }
+    
+    // Get the display bounds
+    double left, right, bottom, top;
+    StimulusDisplay::getCurrentStimulusDisplay()->getDisplayBounds(left, right, bottom, top);
+    
+    // Determine the optimal value for screen_write_prescale (must be an integer between 1 and 1000)
+    int screen_write_prescale = 1000;
+    {
+        using limits = std::numeric_limits<std::remove_reference<decltype(ISAMPLE().gx[LEFT_EYE])>::type>;
+        constexpr auto gazeMin = double(limits::lowest());
+        constexpr auto gazeMax = double(limits::max());
+        for (auto bound : std::array<double, 4> { left, right, bottom, top }) {
+            if (bound < 0.0) {
+                screen_write_prescale = std::min(screen_write_prescale, int(gazeMin / bound));
+            } else if (bound > 0.0) {
+                screen_write_prescale = std::min(screen_write_prescale, int(gazeMax / bound));
+            }
+        }
+    }
+    screen_write_prescale = std::max(1, screen_write_prescale);
+    
+    if (eyecmd_printf("screen_pixel_coords = %g %g %g %g", left, top, right, bottom) ||
+        eyecmd_printf("screen_write_prescale = %d", screen_write_prescale) ||
+        // Need to execute calibration_type command to recompute fixation target positions
+        eyecmd_printf("calibration_type = %s", calibrationType.c_str()))
+    {
+        merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot prepare EyeLink for calibration");
+        return false;
+    }
+    
+    // This returns when the user exits the EyeLink setup screen
+    (void)do_tracker_setup();  // Always returns zero
+    
+    return true;
 }
 
 
@@ -503,16 +612,6 @@ void Eyelink::handleSample(const FSAMPLE &sample, MWTime sampleTime) {
 }
 
 
-static inline void updateEyeState(const FEVENT &event,
-                                  const boost::shared_ptr<Variable> &rightVar,
-                                  const boost::shared_ptr<Variable> &leftVar,
-                                  bool state,
-                                  MWTime eventTime)
-{
-    assignEyeState((event.eye == 1 ? rightVar : leftVar), state, eventTime);
-}
-
-
 void Eyelink::handleEvent(const FEVENT &event, MWTime eventTime) {
     bool eyeState = false;
     
@@ -541,6 +640,30 @@ void Eyelink::handleEvent(const FEVENT &event, MWTime eventTime) {
         default:
             break;
     }
+}
+
+
+INT16 Eyelink::clear_cal_display_hook(void *userData) {
+    return erase_cal_target_hook(userData);
+}
+
+
+INT16 Eyelink::erase_cal_target_hook(void *userData) {
+    auto &el = *static_cast<Eyelink *>(userData);
+    if (el.cal_target_visible && el.cal_target_visible->getValue().getBool()) {
+        el.cal_target_visible->setValue(false);
+    }
+    return 0;
+}
+
+
+INT16 Eyelink::draw_cal_target_hook(void *userData, float x, float y) {
+    auto &el = *static_cast<Eyelink *>(userData);
+    auto currentTime = el.clock->getCurrentTimeUS();
+    assignValue(el.cal_target_x, x, currentTime);
+    assignValue(el.cal_target_y, y, currentTime);
+    assignValue(el.cal_target_visible, true, currentTime);
+    return 0;
 }
 
 

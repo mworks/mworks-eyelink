@@ -40,6 +40,7 @@
 		E12A26FD1201E31400CE8C55 /* Eyelink.bundle in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8D5B49B6048680CD000E48DA /* Eyelink.bundle */; };
 		E15D0B2A16C2C6A300F331B1 /* eyelink_core.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E15D0B2916C2C6A300F331B1 /* eyelink_core.framework */; };
 		E15D0B2C16C2C7A700F331B1 /* libboost_system.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E15D0B2B16C2C7A700F331B1 /* libboost_system.a */; };
+		E16996712177CE440080F750 /* EyelinkTrackerSetupAction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E169966F2177CE440080F750 /* EyelinkTrackerSetupAction.cpp */; };
 		E1E07EAD1C04F4A7008DD97E /* MWComponents.yaml in Resources */ = {isa = PBXBuildFile; fileRef = E1E07EAC1C04F4A7008DD97E /* MWComponents.yaml */; };
 /* End PBXBuildFile section */
 
@@ -86,6 +87,8 @@
 		BFBFB0D510446C180019216B /* MWorksCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MWorksCore.framework; path = /Library/Frameworks/MWorksCore.framework; sourceTree = "<absolute>"; };
 		E15D0B2916C2C6A300F331B1 /* eyelink_core.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = eyelink_core.framework; path = /Library/Frameworks/eyelink_core.framework; sourceTree = "<absolute>"; };
 		E15D0B2B16C2C7A700F331B1 /* libboost_system.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_system.a; path = "/Library/Application Support/MWorks/Developer/lib/libboost_system.a"; sourceTree = "<absolute>"; };
+		E169966F2177CE440080F750 /* EyelinkTrackerSetupAction.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = EyelinkTrackerSetupAction.cpp; sourceTree = "<group>"; };
+		E16996702177CE440080F750 /* EyelinkTrackerSetupAction.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = EyelinkTrackerSetupAction.hpp; sourceTree = "<group>"; };
 		E1E07EAC1C04F4A7008DD97E /* MWComponents.yaml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = MWComponents.yaml; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -139,6 +142,7 @@
 		08FB77AFFE84173DC02AAC07 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
+				E169966E2177CDEF0080F750 /* Actions */,
 				5CFE59180F571B15000C7F30 /* Eyelink.h */,
 				5CFE59190F571B15000C7F30 /* Eyelink.cpp */,
 				5CF9AEB90FD5795C00F405F6 /* EyelinkPlugin.cpp */,
@@ -161,6 +165,15 @@
 				5C78EE6C115D02EE00151A76 /* WARNING.txt */,
 			);
 			name = "External Config";
+			sourceTree = "<group>";
+		};
+		E169966E2177CDEF0080F750 /* Actions */ = {
+			isa = PBXGroup;
+			children = (
+				E16996702177CE440080F750 /* EyelinkTrackerSetupAction.hpp */,
+				E169966F2177CE440080F750 /* EyelinkTrackerSetupAction.cpp */,
+			);
+			path = Actions;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -259,6 +272,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5CFE591A0F571B15000C7F30 /* Eyelink.cpp in Sources */,
+				E16996712177CE440080F750 /* EyelinkTrackerSetupAction.cpp in Sources */,
 				5CF9AEBC0FD5795C00F405F6 /* EyelinkPlugin.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

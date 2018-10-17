@@ -41,6 +41,9 @@ public:
     static const std::string SACCADE_L;
     static const std::string FIXATION_R;
     static const std::string FIXATION_L;
+    static const std::string CAL_TARGET_X;
+    static const std::string CAL_TARGET_Y;
+    static const std::string CAL_TARGET_VISIBLE;
     static const std::string E_DIST;
     static const std::string EYE_TIME;
     static const std::string UPDATE_PERIOD;
@@ -54,10 +57,16 @@ public:
     bool startDeviceIO() override;
     bool stopDeviceIO() override;
     
+    bool doTrackerSetup(const std::string &calibrationType);
+    
 private:
     void update();
     void handleSample(const FSAMPLE &sample, MWTime sampleTime);
     void handleEvent(const FEVENT &event, MWTime eventTime);
+    
+    static INT16 clear_cal_display_hook(void *userData);
+    static INT16 erase_cal_target_hook(void *userData);
+    static INT16 draw_cal_target_hook(void *userData, float x, float y);
     
     using unique_lock = std::unique_lock<std::mutex>;
     static unique_lock::mutex_type& eyelinkDriverLock;
@@ -87,6 +96,9 @@ private:
     const boost::shared_ptr<Variable> saccade_l;
     const boost::shared_ptr<Variable> fixation_r;
     const boost::shared_ptr<Variable> fixation_l;
+    const boost::shared_ptr<Variable> cal_target_x;
+    const boost::shared_ptr<Variable> cal_target_y;
+    const boost::shared_ptr<Variable> cal_target_visible;
     const double e_dist;
     const boost::shared_ptr<Variable> e_time;
     const MWTime update_period;

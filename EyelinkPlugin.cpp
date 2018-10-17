@@ -8,6 +8,7 @@
  */
 
 #include "Eyelink.h"
+#include "EyelinkTrackerSetupAction.hpp"
 
 
 BEGIN_NAMESPACE_MW
@@ -16,6 +17,7 @@ BEGIN_NAMESPACE_MW
 class EyelinkPlugin : public Plugin {
     void registerComponents(boost::shared_ptr<ComponentRegistry> registry) override {
         registry->registerFactory<StandardComponentFactory, Eyelink>();
+        registry->registerFactory<StandardComponentFactory, EyelinkTrackerSetupAction>();
     }
 };
 
