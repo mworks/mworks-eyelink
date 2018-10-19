@@ -9,11 +9,25 @@
 
 #include "Eyelink.h"
 
+#define LOG_EYELINK_ERROR(fname, ...)  logEyelinkError(fname(__VA_ARGS__), #fname)
+
 
 BEGIN_NAMESPACE_MW
 
 
 BEGIN_NAMESPACE()
+
+
+bool logEyelinkError(int error, const std::string &functionName) {
+    const bool failed = (error != 0);
+    if (failed) {
+        auto msg = eyelink_get_error(error, const_cast<char *>(functionName.c_str()));
+        if (msg) {
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "EyeLink error: %s", msg);
+        }
+    }
+    return failed;
+}
 
 
 inline VariablePtr optionalVariable(const ParameterValue &param) {
@@ -195,7 +209,7 @@ Eyelink::~Eyelink() {
             }
             
             // disconnect from tracker
-            if (eyelink_close(1)) {
+            if (LOG_EYELINK_ERROR(eyelink_close, 1)) {
                 merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot close EyeLink connection");
             } else {
                 mprintf(M_IODEVICE_MESSAGE_DOMAIN,
@@ -210,7 +224,7 @@ Eyelink::~Eyelink() {
             HOOKFCNS2 hooks;
             std::memset(&hooks, 0, sizeof(hooks));
             hooks.major = 1;
-            if (setup_graphic_hook_functions_V2(&hooks)) {
+            if (LOG_EYELINK_ERROR(setup_graphic_hook_functions_V2, &hooks)) {
                 merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot reset EyeLink display graphics hook functions");
             }
         }
@@ -229,19 +243,19 @@ bool Eyelink::initialize() {
         return false;
     }
     
-    if (set_eyelink_address(const_cast<char *>(tracker_ip.c_str()))) {
+    if (LOG_EYELINK_ERROR(set_eyelink_address, const_cast<char *>(tracker_ip.c_str()))) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot set EyeLink tracker's IP address to \"%s\"", tracker_ip.c_str());
         return false;
     }
     
-    if (open_eyelink_connection(0)) {
+    if (LOG_EYELINK_ERROR(open_eyelink_connection, 0)) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot connect to EyeLink tracker at %s", tracker_ip.c_str());
         return false;
     }
     
     // Tell the tracker what data to include in samples and which event types to send
-    if (eyecmd_printf("link_sample_data = LEFT,RIGHT,GAZE,HREF,PUPIL,AREA") ||
-        eyecmd_printf("link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK"))
+    if (LOG_EYELINK_ERROR(eyecmd_printf, "link_sample_data = LEFT,RIGHT,GAZE,HREF,PUPIL,AREA") ||
+        LOG_EYELINK_ERROR(eyecmd_printf, "link_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK"))
     {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot configure EyeLink link sample data and event filter");
         return false;
@@ -255,7 +269,7 @@ bool Eyelink::initialize() {
         sprintf(data_file_name, "%02d%06d.edf",(t->tm_year-100),t->tm_yday*1440 + t->tm_hour*60 + t->tm_min);
         //YYMMMMMM : YY=Years since 2k, MMMMMM=Minutes in current year
         
-        if (open_data_file(data_file_name)) {
+        if (LOG_EYELINK_ERROR(open_data_file, data_file_name)) {
             mwarning(M_IODEVICE_MESSAGE_DOMAIN, "Cannot open EyeLink data file \"%s\"", data_file_name);
         } else {
             mprintf(M_IODEVICE_MESSAGE_DOMAIN, "EyeLink logging to local file \"%s\"", data_file_name);
@@ -268,10 +282,10 @@ bool Eyelink::initialize() {
     // verify the name
     {
         ELINKNODE node;
-        if (eyelink_get_node(0, &node)) {
+        if (LOG_EYELINK_ERROR(eyelink_get_node, 0, &node)) {
             mwarning(M_IODEVICE_MESSAGE_DOMAIN, "Cannot retrieve EyeLink node name for this computer");
         } else {
-            eyemsg_printf("%s connected", node.name);
+            (void)eyemsg_printf("%s connected", node.name);  // Ignore return code
         }
     }
     
@@ -285,7 +299,7 @@ bool Eyelink::initialize() {
         hooks.erase_cal_target_hook = erase_cal_target_hook;
         hooks.draw_cal_target_hook = draw_cal_target_hook;
         
-        if (setup_graphic_hook_functions_V2(&hooks)) {
+        if (LOG_EYELINK_ERROR(setup_graphic_hook_functions_V2, &hooks)) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot set EyeLink display graphics hook functions");
             return false;
         }
@@ -324,7 +338,7 @@ bool Eyelink::startDeviceIO() {
         (void)eyelink_reset_data(1);  // Always returns zero
         
         // Start recording
-        if (start_recording(0, 1, 1, 1)) {
+        if (LOG_EYELINK_ERROR(start_recording, 0, 1, 1, 1)) {
             merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot start EyeLink recording");
             return false;
         }
@@ -447,10 +461,10 @@ bool Eyelink::doTrackerSetup(const std::string &calibrationType) {
     }
     screen_write_prescale = std::max(1, screen_write_prescale);
     
-    if (eyecmd_printf("screen_pixel_coords = %g %g %g %g", left, top, right, bottom) ||
-        eyecmd_printf("screen_write_prescale = %d", screen_write_prescale) ||
+    if (LOG_EYELINK_ERROR(eyecmd_printf, "screen_pixel_coords = %g %g %g %g", left, top, right, bottom) ||
+        LOG_EYELINK_ERROR(eyecmd_printf, "screen_write_prescale = %d", screen_write_prescale) ||
         // Need to execute calibration_type command to recompute fixation target positions
-        eyecmd_printf("calibration_type = %s", calibrationType.c_str()))
+        LOG_EYELINK_ERROR(eyecmd_printf, "calibration_type = %s", calibrationType.c_str()))
     {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot prepare EyeLink for calibration");
         return false;
@@ -475,7 +489,7 @@ void Eyelink::update() {
         while (eyelink_get_next_data(nullptr)) {
             if (eyelink_in_data_block(1, 1)) {
                 ALLF_DATA data;
-                eyelink_get_float_data(&data);
+                (void)eyelink_get_float_data(&data);
                 
                 auto currentTime = clock->getCurrentTimeUS();
                 assignValue(e_time, long(data.fs.time), currentTime);
