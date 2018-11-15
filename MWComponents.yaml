@@ -6,17 +6,73 @@ signature: iodevice/eyelink
 isa: IODevice
 platform: macos
 description: |
-    Digital interface to an `EyeLink <http://www.sr-research.com>`_
-    eye tracker.  Tested with the
-    `EyeLink 1000 <http://www.sr-research.com/eyelink1000.html>`_ and
-    `EyeLink II <http://www.sr-research.com/eyelinkII.html>`_ trackers,
-    but may be compatible with additional devices.
+    Digital interface to an `EyeLink <https://www.sr-research.com>`_
+    eye tracker.  Tested with the `EyeLink 1000/1000 Plus
+    <https://www.sr-research.com/products/eyelink-1000-plus/>`_
+    and `EyeLink II <https://www.sr-research.com/products/eyelink-ii/>`_
+    trackers, but may be compatible with additional devices.
 
     If the tracker is run in binocular mode, `eye_x`_, `eye_y`_, and `eye_z`_
     give the midpoint of the shortest connecting line that is orthogonal to both
     gaze vectors; otherwise, these values will be empty.  All other output
     parameters are specified and described in the `EyeLink 1000 User Manual
     <file:///Applications/Eyelink/docs/EyeLink1000_UserManual.pdf>`_.
+
+    .. rubric:: Calibration
+
+    In order to perform a tracker-driven calibration, validation, or drift
+    correction, you must arrange for the drawing of a fixation target on MWorks'
+    stimulus display at locations and times controlled by the tracker.  This is
+    accomplished via the parameters `cal_target_x`_, `cal_target_y`_, and
+    `cal_target_visible`_, as demonstrated in the following example::
+
+        // cal_target_x and cal_target_y receive the location of the
+        // fixation target
+        
+        var cal_target_x = 0
+        var cal_target_y = 0
+        
+        circle cal_target (
+            color = 1,0,0
+            x_size = 1
+            x_position = cal_target_x
+            y_position = cal_target_y
+            )
+        
+        // cal_target_visible receives the signal to show or hide
+        // the fixation target.  Attached actions draw or remove
+        // the target as appropriate.
+        
+        var cal_target_visible (false) {
+            choose {
+                when (cal_target_visible) {
+                    queue_stimulus (cal_target)
+                    update_display ()
+                }
+                otherwise {
+                    clear_display ()
+                }
+            }
+        }
+        
+        // All three variable names must be provided as parameters
+        // in the device declaration
+        
+        iodevice/eyelink eyelink (
+            ...
+            cal_target_x = cal_target_x
+            cal_target_y = cal_target_y
+            cal_target_visible = cal_target_visible
+            ...
+            )
+
+    To initiate a calibration, validation, or drift correction, use the
+    `EyeLink Tracker Setup` action::
+
+        eyelink_tracker_setup (
+            device = eyelink
+            calibration_type = HV13
+            )
 
 parameters: 
   - 
@@ -27,9 +83,11 @@ parameters:
   - 
     name: tracking_dist
     example: 1024
-    description: >
+    description: |
         Tracking range in eye tracker units.  (The default value should be
         1024.)
+
+        Required to compute `eye_x`_, `eye_y`_, and `eye_z`_.
   - 
     name: data_interval
     required: yes
@@ -141,8 +199,24 @@ name: EyeLink Tracker Setup
 signature: action/eyelink_tracker_setup
 isa: Action
 platform: macos
-description: >
-    Prepare for calibration and launch the setup screen of an `EyeLink Device`
+description: |
+    Prepare for calibration and launch the setup screen of an `EyeLink Device`.
+
+    Before launching the setup screen, this action sets the tracker's
+    gaze-position coordinate system (via EyeLink's ``screen_pixel_coords``
+    command) to match the coordinate system used on MWorks' main stimulus
+    display.  It then sets the calibration type (as specified in
+    `calibration_type`_), so that the tracker recomputes the positions of
+    fixation targets in the new coordinate system.
+
+    Once the EyeLink setup screen has been launched, the user can manually
+    initiate calibration, validation, or drift correction via the EyeLink host
+    PC.
+
+    This action can be executed only when the EyeLink device is *stopped* (i.e.
+    before the experiment invokes `Start IO Device` on it, or after it invokes
+    `Stop IO Device`).  Execution continues until the user manually exits the
+    setup screen on the EyeLink host PC.
 parameters: 
   - 
     name: device
