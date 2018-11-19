@@ -30,14 +30,6 @@ bool logEyelinkError(int error, const std::string &functionName) {
 }
 
 
-inline VariablePtr optionalVariable(const ParameterValue &param) {
-    if (param.empty()) {
-        return VariablePtr();
-    }
-    return VariablePtr(param);
-}
-
-
 inline void assignValue(const boost::shared_ptr<Variable> &var, Datum value, MWTime time) {
     if (var) {
         var->setValue(value, time);
