@@ -39,7 +39,6 @@
 		BFBFB0D610446C180019216B /* MWorksCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BFBFB0D510446C180019216B /* MWorksCore.framework */; };
 		E12A26FD1201E31400CE8C55 /* Eyelink.bundle in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8D5B49B6048680CD000E48DA /* Eyelink.bundle */; };
 		E15D0B2A16C2C6A300F331B1 /* eyelink_core.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E15D0B2916C2C6A300F331B1 /* eyelink_core.framework */; };
-		E15D0B2C16C2C7A700F331B1 /* libboost_system.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E15D0B2B16C2C7A700F331B1 /* libboost_system.a */; };
 		E16996712177CE440080F750 /* EyelinkTrackerSetupAction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E169966F2177CE440080F750 /* EyelinkTrackerSetupAction.cpp */; };
 		E1E07EAD1C04F4A7008DD97E /* MWComponents.yaml in Resources */ = {isa = PBXBuildFile; fileRef = E1E07EAC1C04F4A7008DD97E /* MWComponents.yaml */; };
 /* End PBXBuildFile section */
@@ -86,7 +85,6 @@
 		8D5B49B7048680CD000E48DA /* Eyelink-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "Eyelink-Info.plist"; sourceTree = "<group>"; };
 		BFBFB0D510446C180019216B /* MWorksCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MWorksCore.framework; path = /Library/Frameworks/MWorksCore.framework; sourceTree = "<absolute>"; };
 		E15D0B2916C2C6A300F331B1 /* eyelink_core.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = eyelink_core.framework; path = /Library/Frameworks/eyelink_core.framework; sourceTree = "<absolute>"; };
-		E15D0B2B16C2C7A700F331B1 /* libboost_system.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_system.a; path = "/Library/Application Support/MWorks/Developer/lib/libboost_system.a"; sourceTree = "<absolute>"; };
 		E169966F2177CE440080F750 /* EyelinkTrackerSetupAction.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = EyelinkTrackerSetupAction.cpp; sourceTree = "<group>"; };
 		E16996702177CE440080F750 /* EyelinkTrackerSetupAction.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = EyelinkTrackerSetupAction.hpp; sourceTree = "<group>"; };
 		E1E07EAC1C04F4A7008DD97E /* MWComponents.yaml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = MWComponents.yaml; sourceTree = "<group>"; };
@@ -99,7 +97,6 @@
 			files = (
 				BFBFB0D610446C180019216B /* MWorksCore.framework in Frameworks */,
 				E15D0B2A16C2C6A300F331B1 /* eyelink_core.framework in Frameworks */,
-				E15D0B2C16C2C7A700F331B1 /* libboost_system.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -123,7 +120,6 @@
 			children = (
 				BFBFB0D510446C180019216B /* MWorksCore.framework */,
 				E15D0B2916C2C6A300F331B1 /* eyelink_core.framework */,
-				E15D0B2B16C2C7A700F331B1 /* libboost_system.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
