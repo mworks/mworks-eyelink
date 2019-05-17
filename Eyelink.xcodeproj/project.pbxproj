@@ -34,7 +34,6 @@
 
 /* Begin PBXBuildFile section */
 		5CF9AEBC0FD5795C00F405F6 /* EyelinkPlugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CF9AEB90FD5795C00F405F6 /* EyelinkPlugin.cpp */; };
-		5CFCAB0A1105FB4C007CE55F /* MWLibrary.xml in Resources */ = {isa = PBXBuildFile; fileRef = 5CFCAB091105FB4C007CE55F /* MWLibrary.xml */; };
 		5CFE591A0F571B15000C7F30 /* Eyelink.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CFE59190F571B15000C7F30 /* Eyelink.cpp */; };
 		BFBFB0D610446C180019216B /* MWorksCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BFBFB0D510446C180019216B /* MWorksCore.framework */; };
 		E12A26FD1201E31400CE8C55 /* Eyelink.bundle in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8D5B49B6048680CD000E48DA /* Eyelink.bundle */; };
@@ -78,7 +77,6 @@
 		5C78EE6B115D02EE00151A76 /* Development.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Development.xcconfig; path = "/Library/Application Support/MWorks/Developer/Xcode/Development.xcconfig"; sourceTree = "<absolute>"; };
 		5C78EE6C115D02EE00151A76 /* WARNING.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = WARNING.txt; path = "/Library/Application Support/MWorks/Developer/Xcode/WARNING.txt"; sourceTree = "<absolute>"; };
 		5CF9AEB90FD5795C00F405F6 /* EyelinkPlugin.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EyelinkPlugin.cpp; sourceTree = SOURCE_ROOT; };
-		5CFCAB091105FB4C007CE55F /* MWLibrary.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = MWLibrary.xml; sourceTree = "<group>"; };
 		5CFE59180F571B15000C7F30 /* Eyelink.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Eyelink.h; sourceTree = SOURCE_ROOT; };
 		5CFE59190F571B15000C7F30 /* Eyelink.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Eyelink.cpp; sourceTree = SOURCE_ROOT; };
 		8D5B49B6048680CD000E48DA /* Eyelink.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Eyelink.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -130,7 +128,6 @@
 				8D5B49B7048680CD000E48DA /* Eyelink-Info.plist */,
 				32DBCF630370AF2F00C91783 /* Eyelink_Prefix.pch */,
 				E1E07EAC1C04F4A7008DD97E /* MWComponents.yaml */,
-				5CFCAB091105FB4C007CE55F /* MWLibrary.xml */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -240,7 +237,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				E1E07EAD1C04F4A7008DD97E /* MWComponents.yaml in Resources */,
-				5CFCAB0A1105FB4C007CE55F /* MWLibrary.xml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
