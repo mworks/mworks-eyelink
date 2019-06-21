@@ -74,8 +74,6 @@
 
 /* Begin PBXFileReference section */
 		32DBCF630370AF2F00C91783 /* Eyelink_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Eyelink_Prefix.pch; sourceTree = "<group>"; };
-		5C78EE6B115D02EE00151A76 /* Development.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Development.xcconfig; path = "/Library/Application Support/MWorks/Developer/Xcode/Development.xcconfig"; sourceTree = "<absolute>"; };
-		5C78EE6C115D02EE00151A76 /* WARNING.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = WARNING.txt; path = "/Library/Application Support/MWorks/Developer/Xcode/WARNING.txt"; sourceTree = "<absolute>"; };
 		5CF9AEB90FD5795C00F405F6 /* EyelinkPlugin.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EyelinkPlugin.cpp; sourceTree = SOURCE_ROOT; };
 		5CFE59180F571B15000C7F30 /* Eyelink.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Eyelink.h; sourceTree = SOURCE_ROOT; };
 		5CFE59190F571B15000C7F30 /* Eyelink.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Eyelink.cpp; sourceTree = SOURCE_ROOT; };
@@ -86,6 +84,8 @@
 		E169966F2177CE440080F750 /* EyelinkTrackerSetupAction.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = EyelinkTrackerSetupAction.cpp; sourceTree = "<group>"; };
 		E16996702177CE440080F750 /* EyelinkTrackerSetupAction.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = EyelinkTrackerSetupAction.hpp; sourceTree = "<group>"; };
 		E1E07EAC1C04F4A7008DD97E /* MWComponents.yaml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = MWComponents.yaml; sourceTree = "<group>"; };
+		E1F7696222BD402A00024441 /* macOS_Plugin.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = macOS_Plugin.xcconfig; sourceTree = "<group>"; };
+		E1F7696322BD402A00024441 /* macOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = macOS.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -154,11 +154,12 @@
 		5C78EE69115D02C700151A76 /* External Config */ = {
 			isa = PBXGroup;
 			children = (
-				5C78EE6B115D02EE00151A76 /* Development.xcconfig */,
-				5C78EE6C115D02EE00151A76 /* WARNING.txt */,
+				E1F7696322BD402A00024441 /* macOS.xcconfig */,
+				E1F7696222BD402A00024441 /* macOS_Plugin.xcconfig */,
 			);
 			name = "External Config";
-			sourceTree = "<group>";
+			path = "/Library/Application Support/MWorks/Developer/Xcode";
+			sourceTree = "<absolute>";
 		};
 		E169966E2177CDEF0080F750 /* Actions */ = {
 			isa = PBXGroup;
@@ -287,8 +288,8 @@
 /* Begin XCBuildConfiguration section */
 		1DEB913B08733D840010E9CD /* Development */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = E1F7696222BD402A00024441 /* macOS_Plugin.xcconfig */;
 			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Eyelink_Prefix.pch;
 				INFOPLIST_FILE = "Eyelink-Info.plist";
@@ -297,34 +298,27 @@
 					"-headerpad_max_install_names",
 				);
 				PRODUCT_NAME = Eyelink;
-				WRAPPER_EXTENSION = bundle;
 			};
 			name = Development;
 		};
 		1DEB913F08733D840010E9CD /* Development */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 5C78EE6B115D02EE00151A76 /* Development.xcconfig */;
 			buildSettings = {
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 			};
 			name = Development;
 		};
 		5CFCAB1F11060986007CE55F /* Development */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = E1F7696322BD402A00024441 /* macOS.xcconfig */;
 			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
 				PRODUCT_NAME = Everything;
 			};
 			name = Development;
 		};
 		E12A26F91201E2FB00CE8C55 /* Development */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = E1F7696322BD402A00024441 /* macOS.xcconfig */;
 			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
 				PRODUCT_NAME = Install;
 			};
 			name = Development;
