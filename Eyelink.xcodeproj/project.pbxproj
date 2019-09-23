@@ -297,6 +297,7 @@
 					"$(inherited)",
 					"-headerpad_max_install_names",
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = "org.mworks-project.Eyelink";
 				PRODUCT_NAME = Eyelink;
 			};
 			name = Development;
