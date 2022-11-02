@@ -258,7 +258,7 @@ bool Eyelink::initialize() {
         // generate data file name
         time_t now = time(nullptr);
         struct tm* t = gmtime(&now);
-        sprintf(data_file_name, "%02d%06d.edf",(t->tm_year-100),t->tm_yday*1440 + t->tm_hour*60 + t->tm_min);
+        snprintf(data_file_name, sizeof(data_file_name), "%02d%06d.edf",(t->tm_year-100),t->tm_yday*1440 + t->tm_hour*60 + t->tm_min);
         //YYMMMMMM : YY=Years since 2k, MMMMMM=Minutes in current year
         
         if (LOG_EYELINK_ERROR(open_data_file, data_file_name)) {
