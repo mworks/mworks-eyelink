@@ -435,7 +435,7 @@ bool Eyelink::doTrackerSetup(const std::string &calibrationType) {
     
     // Get the display bounds
     double left, right, bottom, top;
-    StimulusDisplay::getCurrentStimulusDisplay()->getDisplayBounds(left, right, bottom, top);
+    StimulusDisplay::getDefaultStimulusDisplay()->getDisplayBounds(left, right, bottom, top);
     
     // Determine the optimal value for screen_write_prescale (must be an integer between 1 and 1000)
     int screen_write_prescale = 1000;
