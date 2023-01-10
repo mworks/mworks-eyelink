@@ -47,6 +47,7 @@ public:
     static const std::string E_DIST;
     static const std::string EYE_TIME;
     static const std::string UPDATE_PERIOD;
+    static const std::string DISPLAY;
     
     static void describeComponent(ComponentInfo &info);
     
@@ -102,6 +103,7 @@ private:
     const double e_dist;
     const boost::shared_ptr<Variable> e_time;
     const MWTime update_period;
+    const StimulusDisplayPtr display;
     
     const boost::shared_ptr<Clock> clock;
     boost::shared_ptr<ScheduleTask> schedule_node;

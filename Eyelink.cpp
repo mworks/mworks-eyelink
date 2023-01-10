@@ -100,6 +100,7 @@ const std::string Eyelink::CAL_TARGET_VISIBLE("cal_target_visible");
 const std::string Eyelink::E_DIST("tracking_dist");
 const std::string Eyelink::EYE_TIME("eye_time");
 const std::string Eyelink::UPDATE_PERIOD("data_interval");
+const std::string Eyelink::DISPLAY("display");
 
 
 void Eyelink::describeComponent(ComponentInfo &info) {
@@ -137,6 +138,7 @@ void Eyelink::describeComponent(ComponentInfo &info) {
     info.addParameter(E_DIST, false);
     info.addParameter(EYE_TIME, false);
     info.addParameter(UPDATE_PERIOD);
+    info.addParameter(DISPLAY, false);
 }
 
 
@@ -172,6 +174,7 @@ Eyelink::Eyelink(const ParameterValueMap &parameters) :
     e_dist(parameters[E_DIST].empty() ? 0.0 : double(parameters[E_DIST])),
     e_time(optionalVariable(parameters[EYE_TIME])),
     update_period(parameters[UPDATE_PERIOD]),
+    display(parameters[DISPLAY]),
     clock(Clock::instance()),
     errors(0),
     running(false)
@@ -435,7 +438,7 @@ bool Eyelink::doTrackerSetup(const std::string &calibrationType) {
     
     // Get the display bounds
     double left, right, bottom, top;
-    StimulusDisplay::getDefaultStimulusDisplay()->getDisplayBounds(left, right, bottom, top);
+    display->getDisplayBounds(left, right, bottom, top);
     
     // Determine the optimal value for screen_write_prescale (must be an integer between 1 and 1000)
     int screen_write_prescale = 1000;
