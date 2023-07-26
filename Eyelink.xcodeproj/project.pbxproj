@@ -198,7 +198,7 @@
 		089C1669FE841209C02AAC07 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0460;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					5CFCAB1E11060985007CE55F = {
 						ProvisioningStyle = Automatic;
@@ -213,13 +213,11 @@
 			};
 			buildConfigurationList = 1DEB913E08733D840010E9CD /* Build configuration list for PBXProject "Eyelink" */;
 			compatibilityVersion = "Xcode 9.3";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 1;
 			knownRegions = (
-				English,
-				Japanese,
-				French,
-				German,
+				en,
+				Base,
 			);
 			mainGroup = 089C166AFE841209C02AAC07 /* Eyelink */;
 			projectDirPath = "";
