@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<marionette_info>
+  <requirements>
+    <feature name="macos"/>
+  </requirements>
+  <expected_messages>
+    <message type="whole_message">ERROR: EyeLink error: Connection timed out</message>
+    <message type="whole_message">ERROR: EyeLink error: Cannot open connection</message>
+    <message type="whole_message">ERROR: Cannot connect to EyeLink tracker at 100.1.1.123</message>
+    <message type="starts_with">ERROR: Can't start iodevice </message>
+    <message type="starts_with">ERROR: Failed to parse experiment </message>
+  </expected_messages>
+  <expected_events>
+    <!-- The experiment shouldn't load, so we expect no events -->
+  </expected_events>
+</marionette_info>

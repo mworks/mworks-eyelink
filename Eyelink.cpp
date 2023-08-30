@@ -18,12 +18,17 @@ BEGIN_NAMESPACE_MW
 BEGIN_NAMESPACE()
 
 
+void logEyelinkError(const char *msg) {
+    merror(M_IODEVICE_MESSAGE_DOMAIN, "EyeLink error: %s", msg);
+}
+
+
 bool logEyelinkError(int error, const std::string &functionName) {
     const bool failed = (error != 0);
     if (failed) {
         auto msg = eyelink_get_error(error, const_cast<char *>(functionName.c_str()));
         if (msg) {
-            merror(M_IODEVICE_MESSAGE_DOMAIN, "EyeLink error: %s", msg);
+            logEyelinkError(msg);
         }
     }
     return failed;
@@ -238,6 +243,24 @@ bool Eyelink::initialize() {
         return false;
     }
     
+    // Set display graphics hook functions.  We need to do this before calling other EyeLink
+    // API functions, so that alert_printf_hook is in place for handling error messages.
+    {
+        HOOKFCNS2 hooks;
+        std::memset(&hooks, 0, sizeof(hooks));
+        hooks.major = 1;
+        hooks.userData = this;
+        hooks.clear_cal_display_hook = clear_cal_display_hook;
+        hooks.erase_cal_target_hook = erase_cal_target_hook;
+        hooks.draw_cal_target_hook = draw_cal_target_hook;
+        hooks.alert_printf_hook = alert_printf_hook;
+        
+        if (LOG_EYELINK_ERROR(setup_graphic_hook_functions_V2, &hooks)) {
+            merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot set EyeLink display graphics hook functions");
+            return false;
+        }
+    }
+    
     if (LOG_EYELINK_ERROR(set_eyelink_address, const_cast<char *>(tracker_ip.c_str()))) {
         merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot set EyeLink tracker's IP address to \"%s\"", tracker_ip.c_str());
         return false;
@@ -281,22 +304,6 @@ bool Eyelink::initialize() {
             mwarning(M_IODEVICE_MESSAGE_DOMAIN, "Cannot retrieve EyeLink node name for this computer");
         } else {
             (void)eyemsg_printf("%s connected", node.name);  // Ignore return code
-        }
-    }
-    
-    // Set display graphics hook functions
-    {
-        HOOKFCNS2 hooks;
-        std::memset(&hooks, 0, sizeof(hooks));
-        hooks.major = 1;
-        hooks.userData = this;
-        hooks.clear_cal_display_hook = clear_cal_display_hook;
-        hooks.erase_cal_target_hook = erase_cal_target_hook;
-        hooks.draw_cal_target_hook = draw_cal_target_hook;
-        
-        if (LOG_EYELINK_ERROR(setup_graphic_hook_functions_V2, &hooks)) {
-            merror(M_IODEVICE_MESSAGE_DOMAIN, "Cannot set EyeLink display graphics hook functions");
-            return false;
         }
     }
     
@@ -672,6 +679,12 @@ INT16 Eyelink::draw_cal_target_hook(void *userData, float x, float y) {
     assignValue(el.cal_target_x, x, currentTime);
     assignValue(el.cal_target_y, y, currentTime);
     assignValue(el.cal_target_visible, true, currentTime);
+    return 0;
+}
+
+
+INT16 Eyelink::alert_printf_hook(void *userData, const char *msg) {
+    logEyelinkError(msg);
     return 0;
 }
 

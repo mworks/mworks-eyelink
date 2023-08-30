@@ -68,6 +68,7 @@ private:
     static INT16 clear_cal_display_hook(void *userData);
     static INT16 erase_cal_target_hook(void *userData);
     static INT16 draw_cal_target_hook(void *userData, float x, float y);
+    static INT16 alert_printf_hook(void *userData, const char *msg);
     
     using unique_lock = std::unique_lock<std::mutex>;
     static unique_lock::mutex_type& eyelinkDriverLock;

@@ -1,0 +1,8 @@
+//
+// This test checks that EyeLink errors don't crash MWServer
+//
+
+eyelink (
+    tracker_ip = '100.1.1.123'  // Probably not a valid tracker IP
+    data_interval = 1ms
+    )
